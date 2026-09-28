@@ -120,8 +120,8 @@ end
 
 local function keystroke(p,v,d)
 d = d or 0
-layer(THOCK,.78p,.55v,d,.16)
-layer(TICK,1.6p,.24v,d+.006,.10)
+layer(THOCK,.78 * (p or 1),.55 * (v or 1),d,.16)
+layer(TICK,1.6 * (p or 1),.24 * (v or 1),d+.006,.10)
 end
 
 local function flurry(n,p0,dp,gap,v) -- a quick run of keys, like typing a word
@@ -296,24 +296,6 @@ rect(14,13,9,2,1,-45,true)
 elseif kind=="Player" then
 rect(6,1,8,8,4)
 rect(2,11,16,14,8)
-elseif kind=="Character" then
-rect(3,7,14,2,1)
-rect(9,2,2,14,1)
-elseif kind=="Guns" then
-rect(2,8,16,4,2)
-rect(13,5,4,10,1,45,true)
-elseif kind=="World" then
-circle(10,10,7,1)
-line(3,10,17,10,1)
-line(10,3,10,17,1)
-elseif kind=="Settings" then
-circle(10,10,3,1)
-for i=0,7 do
-local a=math.rad(i*45)
-local x=10+math.cos(a)*7
-local y=10+math.sin(a)*7
-rect(x-1,y-1,2,2,1)
-end
 elseif kind=="Themes" then
 ring(1,1,18,18,9,2)
 rect(6,6,8,8,4)
@@ -518,7 +500,7 @@ corner(b,r)
 local bs=stroke(b,C.border,1,.3)
 local k=N("Frame",{Position=UDim2.fromOffset(3,3),Size=UDim2.fromOffset(16,16),BackgroundColor3=C.off,BorderSizePixel=0},b)
 corner(k,3); grad(k)
-local on=statetrue
+local on=state == true
 local function render()
 tw(k,.18,{Position=on and UDim2.new(1,-19,0,3) or UDim2.fromOffset(3,3)})
 tw(b,.16,{BackgroundColor3=on and C.soft or C.panel2})
@@ -531,7 +513,7 @@ play(on and "on" or "off")
 render()
 end)
 render()
-return {Get=function() return on end,Set=function(v) on=vtrue;render() end}
+return {Get=function() return on end,Set=function(v) on=v == true;render() end}
 end
 
 local function slider(parent,text,min,max,value,suffix,cb)
@@ -575,15 +557,15 @@ local function grow(on)
 tw(knob,.12,{Size=on and UDim2.fromOffset(14,14) or UDim2.fromOffset(11,11)})
 end
 bar.InputBegan:Connect(function(i)
-if i.UserInputTypeEnum.UserInputType.MouseButton1 or i.UserInputTypeEnum.UserInputType.Touch then
+if i.UserInputType.MouseButton1 or i.UserInputType.Touch then
 dragging=true;grow(true);fromX(i.Position.X)
 end
 end)
 UserInputService.InputChanged:Connect(function(i)
-if dragging and (i.UserInputTypeEnum.UserInputType.MouseMovement or i.UserInputTypeEnum.UserInputType.Touch) then fromX(i.Position.X) end
+if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then fromX(i.Position.X) end
 end)
 UserInputService.InputEnded:Connect(function(i)
-if (i.UserInputTypeEnum.UserInputType.MouseButton1 or i.UserInputTypeEnum.UserInputType.Touch) and dragging then
+if (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) and dragging then
 dragging=false;grow(false)
 end
 end)
@@ -631,7 +613,7 @@ N("UIPadding",{PaddingTop=UDim.new(0,3),PaddingLeft=UDim.new(0,4)},pop)
 N("UIListLayout",{Padding=UDim.new(0,3),SortOrder=Enum.SortOrder.LayoutOrder},pop)
 local optBtns={}
 local function refresh()
-for i,o in ipairs(optBtns) do o.TextColor3=icurrent and C.acc2 or C.sub end
+for i,o in ipairs(optBtns) do o.TextColor3=i==current and C.acc2 or C.sub end
 end
 local function closePop()
 open=false
@@ -639,7 +621,7 @@ tw(ar,.15,{Rotation=0}); setArrow(C.sub)
 tw(pop,.12,{Size=UDim2.new(1,0,0,0)}).Completed:Connect(function() if not open then pop.Visible=false end end)
 end
 for i,opt in ipairs(opts) do
-local o=N("TextButton",{Size=UDim2.new(1,-8,0,28),BackgroundColor3=C.panel2,Text=opt,TextColor3=icurrent and C.acc2 or C.sub,TextSize=9,Font=Enum.Font.GothamMedium,AutoButtonColor=false,ZIndex=51},pop)
+local o=N("TextButton",{Size=UDim2.new(1,-8,0,28),BackgroundColor3=C.panel2,Text=opt,TextColor3=i==current and C.acc2 or C.sub,TextSize=9,Font=Enum.Font.GothamMedium,AutoButtonColor=false,ZIndex=51},pop)
 corner(o,r)
 optBtns[i]=o
 o.MouseEnter:Connect(function() o.BackgroundColor3=C.soft;o.TextColor3=C.text end)
@@ -659,7 +641,74 @@ pop.Visible=true
 tw(pop,.16,{Size=UDim2.new(1,0,0,math.min(31*#opts+6,150))})
 tw(ar,.16,{Rotation=180}); setArrow(C.acc2)
 end)
-return {Get=function() return opts[current],current end}
+return {Get=function() return opts[current] end,Set=function(v) local idx=table.find(opts,v) or 1; current=idx; b.Text=opts[idx]; refresh() end}
+
+-- Extra controls required by Instructions.txt.
+local function labelRow(parent,text)
+    local rw=N("Frame",{Size=UDim2.new(1,0,0,28),BackgroundTransparency=1},parent)
+    label(rw,text,UDim2.fromOffset(0,0),UDim2.new(1,0,1,0),10,C.sub,Enum.Font.GothamMedium)
+    return rw
+end
+
+local function colorPicker(parent,text,default,cb)
+    local rw=row(parent,text,nil,35)
+    local palette={
+        Color3.fromRGB(255,255,255),Color3.fromRGB(255,0,0),Color3.fromRGB(0,255,0),
+        Color3.fromRGB(0,200,0),Color3.fromRGB(0,0,255),Color3.fromRGB(0,255,255),
+        Color3.fromRGB(255,255,0),Color3.fromRGB(255,128,0),Color3.fromRGB(255,0,255),
+        Color3.fromRGB(0,0,0)
+    }
+    local current=default or palette[1]
+    local b=N("TextButton",{AnchorPoint=Vector2.new(1,.5),Position=UDim2.new(1,0,.5,0),Size=UDim2.fromOffset(56,24),
+        BackgroundColor3=current,Text="",AutoButtonColor=false},rw)
+    corner(b,5); stroke(b,C.border,1,.3)
+    local idx=1
+    for i,c in ipairs(palette) do
+        if math.abs(c.R-current.R)<.001 and math.abs(c.G-current.G)<.001 and math.abs(c.B-current.B)<.001 then idx=i end
+    end
+    b.MouseButton1Click:Connect(function()
+        idx=idx%#palette+1; current=palette[idx]; b.BackgroundColor3=current
+        play("click"); if cb then cb(current) end
+    end)
+    return {Get=function()return current end,Set=function(v)current=v;b.BackgroundColor3=v;if cb then cb(v)end end}
+end
+
+local function keyPicker(parent,text,default,mode,cb)
+    local rw=row(parent,text,nil,35)
+    local current=default or "None"
+    local currentMode=mode or "Toggle"
+    local listening=false
+    local b=N("TextButton",{AnchorPoint=Vector2.new(1,.5),Position=UDim2.new(1,0,.5,0),Size=UDim2.fromOffset(155,30),
+        BackgroundColor3=C.panel,Text=tostring(current).." ["..currentMode.."]",TextColor3=C.text,TextSize=9,
+        Font=Enum.Font.GothamMedium,AutoButtonColor=false},rw)
+    corner(b,R);stroke(b,C.border,1,.4)
+    local obj={Value=current,Mode=currentMode,KeyDown=false}
+    b.MouseButton1Click:Connect(function()
+        if listening then return end
+        listening=true;b.Text="press a key..."
+        local c
+        c=UIS.InputBegan:Connect(function(input,gp)
+            if gp then return end
+            if input.UserInputType==Enum.UserInputType.Keyboard then
+                current=input.KeyCode.Name;obj.Value=input.KeyCode;obj.KeyName=current
+            else
+                current=input.UserInputType.Name;obj.Value=input.UserInputType;obj.KeyName=current
+            end
+            b.Text=tostring(current).." ["..currentMode.."]";listening=false;c:Disconnect()
+            if cb then cb(obj.Value) end
+        end)
+    end)
+    UIS.InputBegan:Connect(function(input,gp)
+        if gp then return end
+        if obj.Value and input.KeyCode==obj.Value then obj.KeyDown=true end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if obj.Value and input.KeyCode==obj.Value then obj.KeyDown=false end
+    end)
+    obj.Set=function(_,v)obj.Value=v;b.Text=tostring(v).." ["..currentMode.."]" end
+    return obj
+end
+
 end
 
 --==================================================
@@ -690,652 +739,732 @@ end)
 end
 
 --==================================================
--- Navigation (instant; click sound only when changing tab)
+
 --==================================================
-local tabs={"Dashboard","Combat","Visuals","Movement","Player","Character","Guns","World","Themes","Misc","Settings"}
+-- M3TH feature backend + requested tab rebuild
+-- Source of truth: Instructions.txt, with bypass sections omitted.
+-- Remote calls are restricted to named game remotes used by the source.
+--==================================================
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local VirtualUser = game:GetService("VirtualUser")
+local UIS = UserInputService
+local W = workspace
+local Cam = W.CurrentCamera
+
+local S = {
+    rage=false, rageType="regular", rageWep="primary", partPriority="Head", shootAt=10,
+    multiPart=false, rageVisible=false, rageAutoWall=false, rageSmooth=false, rageSmoothVal=1,
+    ragePrio="", voidSpam=false, vsHide=.01,
+    ttEnabled=false, ttMethod="Adaptive", ttMode="Closest", ttPosition="Front", ttOffsetDist=3,
+    ttStagger=1, ttAimLead=false, ttPrio="",
+    silent=false, silentAutoShoot=false, silentHitChance=100, silentHitPart="Head",
+    silentFovOutline=false, silentShowFov=false, silentFovFill=false, silentVisualize=false,
+    silentFovMoving=false, silentFovRadius=500, silentFovLerp=.2,
+    silentColor=Color3.fromRGB(0,255,0), silentFillColor=Color3.fromRGB(0,255,0),
+    silentLineColor=Color3.fromRGB(0,200,0),
+    aimbot=false, aimbotClosestPart=false, aimSmooth=.2, aimTargetPart="Head", aimFovRadius=1000,
+    aimMatchAxis="lerp", aimShowFov=false, aimFovFill=false, aimFovMoving=false, aimFovLerp=.2,
+    aimColor=Color3.fromRGB(255,0,0), aimFillColor=Color3.fromRGB(255,0,0),
+    trigger=false, trigReact=0, trigOffset=0, trigDelay=0, trigMaxDist=9999,
+    aa=false, aaMeth="Desync", aaSpin=999999, aaYaw=180, aaPitch=90, aaRoll=180,
+    noSpread=false, noRecoil=false, noMuzzle=false, rapid=false,
+    autoBan=false, autoBanW1="Katana", autoBanW2="Flamethrower",
+    autoQ=false, qMode="Ranked 1v1", autoChoose=false, autoChooseW1="Katana", autoChooseW2="Knife",
+    antiAfk=false, ffaHop=false, riotAbuse=false, riotDist=500, riotX=50, riotY=15, riotZ=50, riotSpin=1000000000000,
+    autoLoad=false, autoExec=false, config_selection="default",
+}
+local Toggles, Options = {}, {}
+local allFeatureConnections = {}
+
+local function conn(c) table.insert(allFeatureConnections,c); return c end
+local function disconnect(c)
+    if c then pcall(function() c:Disconnect() end) end
+end
+local function getRoot(plr)
+    local ch=plr and plr.Character
+    return ch and ch:FindFirstChild("HumanoidRootPart")
+end
+local function getHum(plr)
+    local ch=plr and plr.Character
+    return ch and ch:FindFirstChildOfClass("Humanoid")
+end
+local function alive(plr)
+    local h=getHum(plr); return h and h.Health>0
+end
+local function ally(plr)
+    return plr~=player and player.Team~=nil and plr.Team~=nil and player.Team==plr.Team
+end
+local function getPlayers()
+    local out={}
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p~=player and alive(p) and not ally(p) then table.insert(out,p) end
+    end
+    return out
+end
+local function targetPart(plr, partName, closest)
+    local ch=plr and plr.Character
+    if not ch then return nil end
+    if closest then
+        local best,bd=nil,math.huge
+        for _,v in ipairs(ch:GetChildren()) do
+            if v:IsA("BasePart") then
+                local d=(v.Position-Cam.CFrame.Position).Magnitude
+                if d<bd then bd=d; best=v end
+            end
+        end
+        return best
+    end
+    return ch:FindFirstChild(partName or "Head")
+        or ch:FindFirstChild("HitboxHead")
+        or ch:FindFirstChild("HumanoidRootPart")
+end
+local function closestTarget(maxDist, selector)
+    if selector and selector~="" then
+        local p=Players:FindFirstChild(selector)
+        if p and alive(p) and not ally(p) then return p end
+    end
+    local best,bd=nil,maxDist or math.huge
+    for _,p in ipairs(getPlayers()) do
+        local r=getRoot(p)
+        if r then
+            local d=(r.Position-Cam.CFrame.Position).Magnitude
+            if d<bd then bd=d; best=p end
+        end
+    end
+    return best
+end
+local function findRemote(...)
+    local cur=ReplicatedStorage
+    for _,name in ipairs({...}) do
+        cur=cur and cur:FindFirstChild(name)
+        if not cur then return nil end
+    end
+    return cur
+end
+
+-- Explicit game-owned remotes named by Instructions.txt.
+local Remotes = {
+    Ban = function() return findRemote("Remotes","Ban") end,
+    Queue = function() return findRemote("Remotes","Queue") end,
+    Choose = function() return findRemote("Remotes","Choose") end,
+    UseItem = function() return findRemote("Remotes","Replication","Fighter","UseItem") end,
+}
+
+local function fireRemote(remoteGetter,...)
+    local r=remoteGetter()
+    if not r or not r:IsA("RemoteEvent") then return false,"remote unavailable" end
+    local ok,err=pcall(function() r:FireServer(...) end)
+    return ok,err
+end
+
+local function getEquippedObject()
+    local controllers=player.PlayerScripts:FindFirstChild("Controllers")
+    local fighter=controllers and controllers:FindFirstChild("FighterController")
+    if not fighter then return nil end
+    local ok,obj=pcall(function()
+        local mod=require(fighter)
+        return mod.LocalFighter and mod.LocalFighter.EquippedItem
+    end)
+    if ok and obj then return obj end
+    return nil
+end
+local function getUtility()
+    local m=ReplicatedStorage:FindFirstChild("Modules")
+    local u=m and m:FindFirstChild("Utility")
+    if not u then return nil end
+    local ok,obj=pcall(require,u)
+    return ok and obj or nil
+end
+local function getEnums()
+    local m=ReplicatedStorage:FindFirstChild("Modules")
+    local e=m and m:FindFirstChild("EnumLibrary")
+    if not e then return nil end
+    local ok,obj=pcall(require,e)
+    return ok and obj or nil
+end
+local function remoteShoot(part)
+    if not part then return false end
+    local item=getEquippedObject()
+    if not item then return false end
+    local okId,objId=pcall(function() return item:Get("ObjectID") end)
+    if not okId or not objId then return false end
+    local util=getUtility(); local enums=getEnums()
+    if not util or not enums then return false end
+    local aim=CFrame.lookAt(Cam.CFrame.Position,part.Position)
+    local data={}
+    local okEncode=pcall(function()
+        data[utf8.char(1)] = {
+            [utf8.char(0)] = util:EncodeCFrame(aim),
+            [utf8.char(1)] = util:EncodeCFrame(aim),
+            [utf8.char(2)] = part,
+            [utf8.char(3)] = util:EncodeCFrame(part.CFrame:ToObjectSpace(CFrame.new(part.Position))),
+        }
+        data.Hitbox=part.Name
+    end)
+    if not okEncode then return false end
+    local okEnum,action=pcall(function() return enums:ToEnum("StartShooting") end)
+    if not okEnum then return false end
+    return fireRemote(Remotes.UseItem,objId,action,data,nil)
+end
+
+local rageConn, aimConn, triggerConn, tpConn, aaConn, riotConn, muzzleConn, antiAfkConn
+local espGui = nil
+local espObjects = {}
+local highlights = {}
+
+local function stopConn(c) disconnect(c); return nil end
+local function clearESP()
+    for _,o in pairs(espObjects) do if o and o.Parent then o:Destroy() end end
+    espObjects={}
+    for _,h in pairs(highlights) do if h and h.Parent then h:Destroy() end end
+    highlights={}
+end
+local function makeEsp(plr)
+    if plr==player or not plr.Character then return end
+    local root=getRoot(plr); if not root then return end
+    local bb=Instance.new("BillboardGui")
+    bb.Name="M3TH_ESP_"..plr.Name
+    bb.Adornee=root; bb.Size=UDim2.fromOffset(180,80); bb.StudsOffset=Vector3.new(0,3,0)
+    bb.AlwaysOnTop=true; bb.Parent=espGui
+    local name=Instance.new("TextLabel"); name.BackgroundTransparency=1; name.Size=UDim2.new(1,0,0,18)
+    name.Text=plr.Name; name.TextSize=18; name.Font=Enum.Font.GothamBold; name.TextColor3=S.espNameCol or Color3.new(1,1,1)
+    name.Visible=S.espName; name.Parent=bb
+    local hp=Instance.new("TextLabel"); hp.BackgroundTransparency=1; hp.Position=UDim2.fromOffset(0,18); hp.Size=UDim2.new(1,0,0,16)
+    hp.TextSize=14; hp.Font=Enum.Font.Gotham; hp.TextColor3=S.espHpCol or Color3.fromRGB(0,255,0); hp.Parent=bb
+    local dist=Instance.new("TextLabel"); dist.BackgroundTransparency=1; dist.Position=UDim2.fromOffset(0,34); dist.Size=UDim2.new(1,0,0,16)
+    dist.TextSize=12; dist.Font=Enum.Font.Gotham; dist.TextColor3=S.espDistCol or Color3.fromRGB(255,255,0); dist.Parent=bb
+    espObjects[plr]=bb
+    local hl=Instance.new("Highlight"); hl.Name="M3TH_Chams"; hl.Adornee=plr.Character; hl.FillTransparency=.55; hl.OutlineTransparency=.1
+    hl.FillColor=S.espChamsCol or Color3.fromRGB(0,255,0); hl.Enabled=S.espChams; hl.Parent=espGui
+    highlights[plr]=hl
+end
+local function refreshESP()
+    clearESP()
+    if not espGui then
+        espGui=Instance.new("ScreenGui"); espGui.Name="M3TH_ESP"; espGui.ResetOnSpawn=false; espGui.IgnoreGuiInset=true; espGui.Parent=pg
+    end
+    if not (S.espName or S.espHp or S.espDist or S.espChams) then return end
+    for _,p in ipairs(Players:GetPlayers()) do if p~=player then makeEsp(p) end end
+end
+conn(Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() task.wait(.2); refreshESP() end) end))
+conn(Players.PlayerRemoving:Connect(function(p) if espObjects[p] then espObjects[p]:Destroy();espObjects[p]=nil end if highlights[p] then highlights[p]:Destroy();highlights[p]=nil end end))
+conn(RunService.RenderStepped:Connect(function()
+    for p,bb in pairs(espObjects) do
+        if bb and bb.Parent then
+            local h=getHum(p); local root=getRoot(p)
+            local n=bb:FindFirstChildOfClass("TextLabel")
+            local labels=bb:GetChildren()
+            local hpLabel=labels[2]; local dLabel=labels[3]
+            if n then n.Visible=S.espName; n.TextColor3=S.espTeam and (p.TeamColor.Color) or (S.espNameCol or Color3.new(1,1,1)); n.TextSize=S.espNameS or 18 end
+            if hpLabel and h then hpLabel.Visible=S.espHp; hpLabel.Text=string.format("hp: %d",math.floor(h.Health)); hpLabel.TextColor3=S.espHpCol or Color3.fromRGB(0,255,0); hpLabel.TextSize=S.espHpS or 14 end
+            if dLabel and root then dLabel.Visible=S.espDist; dLabel.Text=string.format("%d studs",(root.Position-Cam.CFrame.Position).Magnitude); dLabel.TextColor3=S.espDistCol or Color3.fromRGB(255,255,0) end
+        end
+    end
+end))
+
+local function startAimbot()
+    if aimConn then return end
+    aimConn=RunService.RenderStepped:Connect(function(dt)
+        if not S.aimbot then return end
+        local p=closestTarget(S.aimFovRadius,S.aimTargetSelector)
+        local part=p and targetPart(p,S.aimTargetPart,S.aimbotClosestPart)
+        if not part then return end
+        local desired=CFrame.lookAt(Cam.CFrame.Position,part.Position)
+        local a=math.clamp((S.aimSmooth or .2)*dt*12,0,1)
+        Cam.CFrame=Cam.CFrame:Lerp(desired,a)
+    end)
+end
+local function stopAimbot() aimConn=stopConn(aimConn) end
+
+local function startTrigger()
+    if triggerConn then return end
+    triggerConn=RunService.Heartbeat:Connect(function()
+        if not S.trigger then return end
+        local origin=Cam.CFrame.Position
+        local result=W:Raycast(origin,Cam.CFrame.LookVector*(S.trigMaxDist or 9999))
+        if not result then return end
+        local model=result.Instance:FindFirstAncestorOfClass("Model")
+        local p=model and Players:GetPlayerFromCharacter(model)
+        if not p or p==player or ally(p) or not alive(p) then return end
+        task.delay((S.trigReact+S.trigOffset)/1000,function()
+            if S.trigger then task.wait(S.trigDelay/1000); remoteShoot(result.Instance) end
+        end)
+    end)
+end
+local function stopTrigger() triggerConn=stopConn(triggerConn) end
+
+local function startRage()
+    if rageConn then return end
+    rageConn=RunService.Heartbeat:Connect(function()
+        if not S.rage then return end
+        local p=closestTarget(5000,S.ragePrio)
+        if not p then return end
+        local part=targetPart(p,S.partPriority,S.multiPart)
+        if not part then return end
+        if S.rageVisible and not S.rageAutoWall then
+            local ray=W:Raycast(Cam.CFrame.Position,part.Position-Cam.CFrame.Position)
+            if ray and not ray.Instance:IsDescendantOf(p.Character) then return end
+        end
+        for _=1,math.max(1,S.shootAt or 1) do remoteShoot(part) end
+        if S.rageSmooth then task.wait(math.min(S.rageSmoothVal or 1,.05)) end
+    end)
+end
+local function stopRage() rageConn=stopConn(rageConn) end
+
+local function startTeleport()
+    if tpConn then return end
+    tpConn=RunService.Heartbeat:Connect(function()
+        if not S.ttEnabled then return end
+        local p=closestTarget(5000,S.ttPrio)
+        local tr=getRoot(p); local meRoot=getRoot(player)
+        if not tr or not meRoot then return end
+        local pos=tr.Position
+        local look=tr.CFrame.LookVector
+        local off=Vector3.zero
+        local d=S.ttOffsetDist or 3
+        if S.ttPosition=="Front" then off=look*d
+        elseif S.ttPosition=="Behind" then off=-look*d
+        elseif S.ttPosition=="Above" then off=Vector3.new(0,d,0)
+        elseif S.ttPosition=="Below" then off=Vector3.new(0,-d,0)
+        elseif S.ttPosition=="Left" then off=-tr.CFrame.RightVector*d
+        elseif S.ttPosition=="Right" then off=tr.CFrame.RightVector*d end
+        if S.ttAimLead then pos=pos+tr.AssemblyLinearVelocity*(S.ttStagger or 1)*.05 end
+        meRoot.CFrame=CFrame.lookAt(pos+off,tr.Position)
+    end)
+end
+local function stopTeleport() tpConn=stopConn(tpConn) end
+
+local function startAntiAim()
+    if aaConn then return end
+    local t=0
+    aaConn=RunService.Heartbeat:Connect(function(dt)
+        if not S.aa then return end
+        local root=getRoot(player); local hum=getHum(player); if not root then return end
+        t=t+dt
+        if hum then hum.AutoRotate=false end
+        if S.aaMeth=="Static" then
+            root.CFrame=CFrame.new(root.Position)*CFrame.Angles(0,math.rad(S.aaYaw),0)
+        elseif S.aaMeth=="Spin" then
+            root.CFrame=CFrame.new(root.Position)*CFrame.Angles(0,math.rad((t*S.aaSpin)%360),0)
+        elseif S.aaMeth=="Jitter" then
+            root.CFrame=CFrame.new(root.Position)*CFrame.Angles(math.rad(math.random(-180,180)),math.rad(math.random(-180,180)),math.rad(math.random(-180,180)))
+        elseif S.aaMeth=="Desync" then
+            root.CFrame=CFrame.lookAt(root.Position,root.Position+Vector3.new(Cam.CFrame.LookVector.X,0,Cam.CFrame.LookVector.Z))*CFrame.Angles(math.rad(S.aaYaw),math.rad(S.aaPitch),math.rad(S.aaRoll))
+        elseif S.aaMeth=="Sway" then
+            root.CFrame=CFrame.new(root.Position)*CFrame.Angles(math.cos(t*2)*math.rad(45),math.sin(t*3)*math.rad(90),math.sin(t*1.5)*math.rad(30))
+        elseif S.aaMeth=="Orbit" then
+            local a=t*(S.aaSpin or 100)*.005
+            root.CFrame=CFrame.new(root.Position)*CFrame.Angles(0,a,0)
+        elseif S.aaMeth=="Custom" then
+            root.CFrame=CFrame.new(root.Position)*CFrame.Angles(math.rad(S.aaPitch),math.rad(S.aaYaw),math.rad(S.aaRoll))
+        end
+    end)
+end
+local function stopAntiAim()
+    aaConn=stopConn(aaConn)
+    local h=getHum(player); if h then h.AutoRotate=true end
+end
+
+local function startMuzzle()
+    if muzzleConn then return end
+    muzzleConn=RunService.RenderStepped:Connect(function()
+        if not S.noMuzzle then return end
+        local vm=W:FindFirstChild("ViewModels")
+        if vm then
+            for _,v in ipairs(vm:GetDescendants()) do
+                if v:IsA("ParticleEmitter") and (v.Name=="ParticleEmiter" or v.Name=="MuzzleFlash") then v.Enabled=false end
+                if v:IsA("SpotLight") then v.Enabled=false end
+            end
+        end
+    end)
+end
+local function stopMuzzle() muzzleConn=stopConn(muzzleConn) end
+
+local function startRiot()
+    if riotConn then return end
+    local t=0
+    riotConn=RunService.Heartbeat:Connect(function(dt)
+        if not S.riotAbuse then return end
+        t=t+dt
+        local root=getRoot(player); if not root then return end
+        local a=t*(S.riotSpin or 1e4)*.0001
+        local j=Vector3.new((math.random()-.5)*S.riotX,(math.random()-.5)*S.riotY,(math.random()-.5)*S.riotZ)
+        root.CFrame=CFrame.new(root.Position+j)*CFrame.Angles(0,a,0)
+    end)
+end
+local function stopRiot() riotConn=stopConn(riotConn) end
+
+local function startAntiAfk()
+    if antiAfkConn then return end
+    antiAfkConn=player.Idled:Connect(function()
+        if S.antiAfk then
+            pcall(function() VirtualUser:Button2Down(Vector2.zero,Cam.CFrame); task.wait(1); VirtualUser:Button2Up(Vector2.zero,Cam.CFrame) end)
+        end
+    end)
+end
+local function stopAntiAfk() antiAfkConn=stopConn(antiAfkConn) end
+
+local autoBanThread,autoQueueThread,autoChooseThread
+local function stopThread(t) if t then pcall(task.cancel,t) end return nil end
+local rWeaps={"none","Katana","Knife","Fists","Battle Axe","Chainsaw","Riot Shield","Scythe","Maul","Trowel","Grenade","Flashbang","Jump Pad","Molotav","Satchel","Smoke Grenade","War Horn","Medkit","Subspace Tripmine","Warpstone","Flamethrower","Bow","Crossbow","Dagger","Sling","Sword"}
+local rQs={"1v1","Ranked 1v1","2v2","Ranked 2v2","3v3","Ranked 3v3","4v4","5v5"}
+
+local function startAutoBan()
+    autoBanThread=stopThread(autoBanThread)
+    autoBanThread=task.spawn(function()
+        while S.autoBan do
+            if S.autoBanW1~="none" then fireRemote(Remotes.Ban,S.autoBanW1) end
+            if S.autoBanW2~="none" then fireRemote(Remotes.Ban,S.autoBanW2) end
+            task.wait(.5)
+        end
+    end)
+end
+local function stopAutoBan() autoBanThread=stopThread(autoBanThread) end
+local function startAutoQueue()
+    autoQueueThread=stopThread(autoQueueThread)
+    autoQueueThread=task.spawn(function()
+        while S.autoQ do fireRemote(Remotes.Queue,S.qMode or "Ranked 1v1"); task.wait(1) end
+    end)
+end
+local function stopAutoQueue() autoQueueThread=stopThread(autoQueueThread) end
+local function startAutoChoose()
+    autoChooseThread=stopThread(autoChooseThread)
+    autoChooseThread=task.spawn(function()
+        while S.autoChoose do
+            if S.autoChooseW1~="none" then fireRemote(Remotes.Choose,S.autoChooseW1) end
+            if S.autoChooseW2~="none" then fireRemote(Remotes.Choose,S.autoChooseW2) end
+            task.wait(.5)
+        end
+    end)
+end
+local function stopAutoChoose() autoChooseThread=stopThread(autoChooseThread) end
+
+local function updateFeature(key,v)
+    S[key]=v
+    if key=="rage" then if v then startRage() else stopRage() end
+    elseif key=="ttEnabled" then if v then startTeleport() else stopTeleport() end
+    elseif key=="aimbot" then if v then startAimbot() else stopAimbot() end
+    elseif key=="trigger" then if v then startTrigger() else stopTrigger() end
+    elseif key=="aa" then if v then startAntiAim() else stopAntiAim() end
+    elseif key=="noMuzzle" then if v then startMuzzle() else stopMuzzle() end
+    elseif key=="antiAfk" then if v then startAntiAfk() else stopAntiAfk() end
+    elseif key=="autoBan" then if v then startAutoBan() else stopAutoBan() end
+    elseif key=="autoQ" then if v then startAutoQueue() else stopAutoQueue() end
+    elseif key=="autoChoose" then if v then startAutoChoose() else stopAutoChoose() end
+    elseif key=="riotAbuse" then if v then startRiot() else stopRiot() end
+    elseif key=="espName" or key=="espHp" or key=="espDist" or key=="espChams" then refreshESP() end
+end
+
+--==================================================
+-- Navigation
+--==================================================
+local tabs={"combat","visuals","character","guns","misc","world","settings"}
 local tabData={}
-local current="Dashboard"
-local s={}
+local current=tabs[1]
+local pages={}
 
 local function select(name)
-current=name
-for n,d in pairs(tabData) do
-local on=n==name
-tw(d.b,.14,{BackgroundColor3=on and C.panel2 or C.surface})
-tw(d.t,.14,{TextColor3=on and C.text or C.sub})
-d.ic(on and C.acc2 or C.sub)
-d.i.Visible=on
+    current=name
+    for n,d in pairs(tabData) do
+        local on=n==name
+        tw(d.b,.14,{BackgroundColor3=on and C.panel2 or C.surface})
+        tw(d.t,.14,{TextColor3=on and C.text or C.sub})
+        d.ic(on and C.acc2 or C.sub); d.i.Visible=on
+    end
+    crumb.Text="M3TH / "..name
+    title.Text=name
 end
-crumb.Text="M3TH / "..name
-title.Text=name
-end
-
 local function loadPage(name)
-select(name)
-clear()
-local f=pages[name]
-if f then f() end
-scroll.CanvasPosition=Vector2.new(0,0)
+    select(name); clear()
+    if pages[name] then pages[name]() end
+    scroll.CanvasPosition=Vector2.new(0,0)
 end
-
 for i,name in ipairs(tabs) do
-local b=N("TextButton",{Size=UDim2.new(1,0,0,40),BackgroundColor3=i1 and C.panel2 or C.surface,Text="",AutoButtonColor=false,LayoutOrder=i},nav)
-corner(b,R)
-local ind=N("Frame",{Position=UDim2.fromOffset(0,7),Size=UDim2.fromOffset(3,26),BackgroundColor3=C.acc,BorderSizePixel=0,Visible=i1},b)
-corner(ind,1);grad(ind)
-local setIc=icon(name,b,UDim2.fromOffset(14,10),i1 and C.acc2 or C.sub)
-local txt=label(b,name,UDim2.fromOffset(46,0),UDim2.new(1,-52,1,0),11,i1 and C.text or C.sub,Enum.Font.GothamMedium)
-b.MouseEnter:Connect(function()
-if current~=name then tw(b,.1,{BackgroundColor3=C.panel});tw(txt,.1,{TextColor3=C.text});setIc(C.text) end
-end)
-b.MouseLeave:Connect(function()
-if current~=name then tw(b,.1,{BackgroundColor3=C.surface});tw(txt,.1,{TextColor3=C.sub});setIc(C.sub) end
-end)
-b.MouseButton1Click:Connect(function()
-if current==name then return end -- already on this tab: no sound, no reload
-play("tab")
-loadPage(name)
-end)
-tabData[name]={b=b,i=ind,t=txt,ic=setIc}
-end
-
-
-local function callGameHook(name,...)
-local env
-if type(getgenv)=="function" then
-local ok,result=pcall(getgenv)
-if ok then env=result end
-end
-local fn=env and env[name]
-if type(fn)=="function" then
-return pcall(fn,...)
-end
-end
-
-local rWeaps={"Katana","Flamethrower","Knife"}
-local rQs={"Ranked 1v1"}
-
-local function colorControl(parent,name,key,default,callback)
-local palette={
-{name="White",c=Color3.fromRGB(255,255,255)},
-{name="Green",c=Color3.fromRGB(0,255,0)},
-{name="Red",c=Color3.fromRGB(255,0,0)},
-{name="Yellow",c=Color3.fromRGB(255,255,0)},
-{name="Blue",c=Color3.fromRGB(0,170,255)},
-{name="Purple",c=Color3.fromRGB(170,80,255)},
-}
-local index=1
-for i,v in ipairs(palette) do
-if v.c==default then index=i break end
-end
-local rw=row(parent,name,"Click to cycle colors.",35)
-local b=N("TextButton",{
-AnchorPoint=Vector2.new(1,.5),Position=UDim2.new(1,0,.5,0),
-Size=UDim2.fromOffset(155,30),BackgroundColor3=palette[index].c,
-Text=palette[index].name,TextColor3=C.text,TextSize=10,
-Font=Enum.Font.GothamMedium,AutoButtonColor=false,
-},rw)
-corner(b,R)
-stroke(b,C.border,1,.4)
-s[key]=palette[index].c
-if callback then callback(palette[index].c) end
-b.MouseButton1Click:Connect(function()
-index=index%#palette+1
-local v=palette[index]
-b.Text=v.name
-b.BackgroundColor3=v.c
-s[key]=v.c
-if callback then callback(v.c) end
-play("click")
-end)
-return b
+    local b=N("TextButton",{Size=UDim2.new(1,0,0,40),BackgroundColor3=i==1 and C.panel2 or C.surface,Text="",AutoButtonColor=false,LayoutOrder=i},nav)
+    corner(b,R)
+    local ind=N("Frame",{Position=UDim2.fromOffset(0,7),Size=UDim2.fromOffset(3,26),BackgroundColor3=C.acc,BorderSizePixel=0,Visible=i==1},b)
+    corner(ind,1);grad(ind)
+    local setIc,ic=icon(name,b,UDim2.fromOffset(14,10),i==1 and C.acc2 or C.sub)
+    local txt=label(b,name,UDim2.fromOffset(46,0),UDim2.new(1,-52,1,0),11,i==1 and C.text or C.sub,Enum.Font.GothamMedium)
+    b.MouseEnter:Connect(function() if current~=name then tw(b,.1,{BackgroundColor3=C.panel});tw(txt,.1,{TextColor3=C.text});setIc(C.text) end end)
+    b.MouseLeave:Connect(function() if current~=name then tw(b,.1,{BackgroundColor3=C.surface});tw(txt,.1,{TextColor3=C.sub});setIc(C.sub) end end)
+    b.MouseButton1Click:Connect(function() if current~=name then play("tab");loadPage(name) end end)
+    tabData[name]={b=b,i=ind,t=txt,ic=setIc}
 end
 
 --==================================================
--- Pages
+-- Control adapters
 --==================================================
-local fx
-
-local function scaleSlider(parent,text)
-slider(parent,text,70,130,userScale*100,"%",function(v)
-userScale=v/100
-if menuOpen and not busy then ui.Scale=actualScale() end
-end)
+local function regToggle(id,text,default,cb,parent,desc)
+    local c=toggle(parent,text,default,desc,function(v)
+        local t=Toggles[id]; if t then t.Value=v end
+        if cb then cb(v) end
+    end)
+    local obj={Value=default,SetValue=function(_,v)c.Set(v);end,Get=function()return c.Get()end}
+    Toggles[id]=obj; return obj
 end
-
-local themeNames={}
-for i,t in ipairs(themes) do themeNames[i]=t.name end
-
-pages.Dashboard=function()
-local s=section("WELCOME BACK","A denser, cleaner M3TH panel with motion in the accents.")
-label(s,"Everything is where you expect it.",UDim2.fromOffset(0,0),UDim2.new(1,0,0,37),17,C.text,Enum.Font.GothamBold)
-label(s,"Drag the header, switch pages, test the controls, then minimize. RightShift toggles the menu.",UDim2.fromOffset(0,0),UDim2.new(1,0,0,32),9,C.sub)
-
-local state=section("SESSION","Local interface diagnostics.")
-toggle(state,"Interface enabled",true,"Controls the visual demo state.")
-toggle(state,"Animated gradients",animated,"Move the accent gradients continuously.",function(v) animated=v end)
-toggle(state,"Sound effects",soundOn,"Soft ASMR keyboard clicks on interaction.",function(v) soundOn=v end)
-toggle(state,"Particles",fx and fx.Visible or true,"Faint particles in the background.",function(v) if fx then fx.Visible=v end end)
-slider(state,"Sound volume",0,100,soundVol*100,"%",function(v) soundVol=v/100 end)
-scaleSlider(state,"UI scale")
-
-local quick=section("QUICK ACTIONS","Small interactions built into the panel.")
-button(quick,"SHOW TEST NOTIFICATION",function() notify("M3TH","Interface interaction confirmed.") end,true)
-button(quick,"RESET DASHBOARD",function() loadPage("Dashboard");notify("M3TH","Dashboard refreshed.") end)
-
-local style=section("STYLE","Quick cosmetic selectors.")
-dropdown(style,"Accent theme",themeNames,themeIndex,function(_,i) applyTheme(i) end)
-dropdown(style,"Density",{"Comfortable","Compact","Spacious"},1)
+local function regSlider(id,text,min,max,default,suffix,cb,parent)
+    local c=slider(parent,text,min,max,default,suffix,function(v)
+        local o=Options[id]; if o then o.Value=v end
+        if cb then cb(v) end
+    end)
+    local obj={Value=default,SetValue=function(_,v)c.Set(v);end,Get=function()return c.Get()end}
+    Options[id]=obj; return obj
 end
-
-pages.Combat=function()
-local g=section("TRIGGERBOT","Timing, distance, and activation controls.")
-toggle(g,"Triggerbot",false,"Enable the triggerbot system.",function(v)
-s.trig=v
-if v then callGameHook("startTrig",s) else callGameHook("stopTrig") end
-end)
-slider(g,"Reaction time",0,500,0," ms",function(v) s.trigReact=v end)
-slider(g,"Reaction offset",0,200,0," ms",function(v) s.trigReactOffset=v end)
-slider(g,"Shoot delay",0,200,0," ms",function(v) s.trigShootDelay=v end)
-slider(g,"Max distance",50,9999,9999," studs",function(v) s.trigMaxDist=v end)
-local k=section("TRIGGERBOT KEYBIND","Click the button, then press a keyboard key.")
-local keyRow=row(k,"Hold key","Current key: None",45)
-local keyButton=N("TextButton",{AnchorPoint=Vector2.new(1,.5),Position=UDim2.new(1,0,.5,0),Size=UDim2.fromOffset(155,30),BackgroundColor3=C.panel,Text="None",TextColor3=C.text,TextSize=10,Font=Enum.Font.GothamMedium,AutoButtonColor=false},keyRow)
-corner(keyButton,R);stroke(keyButton,C.border,1,.4)
-local listening=false
-keyButton.MouseButton1Click:Connect(function()
-listening=true
-keyButton.Text="Press a key..."
-play("click")
-end)
-UserInputService.InputBegan:Connect(function(input,gp)
-if listening and not gp and input.UserInputType==Enum.UserInputType.Keyboard then
-listening=false
-s.trigKey=input.KeyCode
-keyButton.Text=input.KeyCode.Name
-callGameHook("setTrigKeybind",input.KeyCode)
+local function regDropdown(id,text,values,default,cb,parent)
+    local idx=table.find(values,default) or 1
+    local c=dropdown(parent,text,values,idx,function(v)
+        local o=Options[id]; if o then o.Value=v end
+        if cb then cb(v) end
+    end)
+    local obj={Value=default,SetValue=function(_,v)c.Set(v);end,Get=function()return c.Get()end}
+    Options[id]=obj; return obj
 end
-end)
+local function regColor(id,text,default,cb,parent)
+    local c=colorPicker(parent,text,default,function(v)
+        local o=Options[id]; if o then o.Value=v end
+        if cb then cb(v) end
+    end)
+    Options[id]={Value=default,SetValue=function(_,v)c.Set(v)end,Get=function()return c.Get()end}
+    return Options[id]
 end
-
-pages.Visuals=function()
-local esp=section("ESP","Player visual settings.")
-toggle(esp,"Names",false,function(v) s.espName=v end)
-slider(esp,"Names size",8,30,18,"",function(v) s.espNameS=v end)
-toggle(esp,"Health",false,function(v) s.espHp=v end)
-slider(esp,"Health size",8,30,14,"",function(v) s.espHpS=v end)
-toggle(esp,"Boxes",false,function(v) s.espBox=v end)
-slider(esp,"Boxes thickness",1,5,2,"",function(v) s.espBoxT=v end)
-toggle(esp,"Tracers",false,function(v) s.espTrace=v end)
-slider(esp,"Tracers thickness",1,5,2,"",function(v) s.espTraceT=v end)
-toggle(esp,"Skeleton",false,function(v) s.espSkelly=v end)
-slider(esp,"Skeleton thickness",1,5,2,"",function(v) s.espSkellyT=v end)
-toggle(esp,"Distance",false,function(v) s.espDist=v end)
-toggle(esp,"Team colors",false,function(v) s.espTeam=v end)
-
-local chams=section("CHAMS","Character highlight settings.")
-toggle(chams,"Enable chams",false,function(v) s.espChams=v end)
-
-local colors=section("COLORS","Click a color control to cycle its color.")
-colorControl(colors,"Names color","espNameCol",Color3.fromRGB(255,255,255))
-colorControl(colors,"Health color","espHpCol",Color3.fromRGB(0,255,0))
-colorControl(colors,"Boxes color","espBoxCol",Color3.fromRGB(0,255,0))
-colorControl(colors,"Tracers color","espTraceCol",Color3.fromRGB(255,0,0))
-colorControl(colors,"Skeleton color","espSkellyCol",Color3.fromRGB(255,255,255))
-colorControl(colors,"Distance color","espDistCol",Color3.fromRGB(255,255,0))
-colorControl(colors,"Chams color","espChamsCol",Color3.fromRGB(0,255,0))
+local function regKey(id,text,default,mode,cb,parent)
+    local c=keyPicker(parent,text,default,mode,function(v)
+        local o=Toggles[id]; if o then o.Value=v end
+        if cb then cb(v) end
+    end)
+    Toggles[id]=c; return c
 end
-
-pages.Movement=function()
-local m=section("MOVEMENT PREVIEW","Non-functional presentation controls.")
-toggle(m,"Movement module",false,"Visual placeholder only.")
-slider(m,"Speed amount",0,100,32,"%")
-toggle(m,"Jump preview",false)
-slider(m,"Jump amount",0,100,50,"%")
-toggle(m,"Momentum display",true)
-local c=section("COORDINATES","Presentation-only coordinate widgets.")
-slider(c,"X",0,1000,56)
-slider(c,"Y",0,1000,12)
-slider(c,"Z",0,1000,764)
-button(c,"SET WAYPOINT",function() notify("M3TH","Waypoint preview saved locally.") end,true)
-end
-
-pages.Player=function()
-local p=section("PLAYER","Local display preferences.")
-toggle(p,"Show profile card",true)
-toggle(p,"Compact labels",false)
-toggle(p,"Status badge",true)
-dropdown(p,"Display mode",{"Modern","Classic","Minimal"},1)
-local i=section("INTERFACE","Control the shape and scale of the UI.")
-scaleSlider(i,"Interface scale")
-dropdown(i,"Corner radius",{"Soft","Rounded","Sharp"},2)
-toggle(i,"Reduced motion",false)
-end
-
-pages.Character=function()
-local aa=section("ANTI AIM","Character orientation controls.")
-toggle(aa,"Enable anti aim",false,"Scrambles character orientation.",function(v)
-s.aa=v
-if v then callGameHook("startAa") else callGameHook("stopAa") end
-end)
-dropdown(aa,"Method",{"Static","Spin","Jitter","Desync","Sway","Orbit","Custom"},1,function(v) s.aaMeth=v end)
-slider(aa,"Spin speed",100,999999,999999,"",function(v) s.aaSpin=v end)
-slider(aa,"Yaw",0,360,180,"Â°",function(v) s.aaYaw=v end)
-slider(aa,"Pitch",0,360,90,"Â°",function(v) s.aaPitch=v end)
-slider(aa,"Roll",0,360,180,"Â°",function(v) s.aaRoll=v end)
-end
-
-pages.Guns=function()
-local g=section("GUNS","Weapon behavior controls.")
-toggle(g,"No spread",false,function(v) s.noSpread=v end)
-toggle(g,"No recoil",false,function(v) s.noRecoil=v end)
-toggle(g,"No muzzle flash",false,function(v)
-s.noMuzzle=v
-if v then callGameHook("startMuzzle") else callGameHook("stopMuzzle") end
-end)
-toggle(g,"Rapid fire",false,function(v)
-s.rapid=v
-if v then callGameHook("startRapid") else callGameHook("stopRapid") end
-end)
-end
-
-pages.Themes=function()
-local sTheme=section("THEME","Pick an accent color. It applies instantly everywhere.")
-local grid=N("Frame",{Size=UDim2.new(1,0,0,152),BackgroundTransparency=1},sTheme)
-N("UIGridLayout",{CellSize=UDim2.fromOffset(196,70),CellPadding=UDim2.fromOffset(12,12),SortOrder=Enum.SortOrder.LayoutOrder},grid)
-local swatches={}
-local function refreshSwatches()
-for i,sw in ipairs(swatches) do
-local active=themeIndex==i
-sw.st.Color=active and C.acc2 or C.border
-sw.st.Thickness=active and 2 or 1
-sw.st.Transparency=active and 0 or .4
-sw.tag.Text=active and "ACTIVE" or "APPLY"
-sw.tag.TextColor3=active and C.acc2 or C.sub
-end
-end
-for i,t in ipairs(themes) do
-local b=N("TextButton",{BackgroundColor3=C.panel,Text="",AutoButtonColor=false,LayoutOrder=i},grid)
-corner(b,R)
-local st=stroke(b,C.border,1,.4)
-local chip=N("Frame",{Position=UDim2.fromOffset(12,12),Size=UDim2.fromOffset(46,46),BackgroundColor3=t.acc,BorderSizePixel=0},b)
-chip:SetAttribute("NoTheme",true);corner(chip,R);N("UIGradient",{Color=mkSeq(t.acc,t.acc2),Rotation=45},chip)
-label(b,t.name,UDim2.fromOffset(72,14),UDim2.new(1,-82,0,20),12,C.text,Enum.Font.GothamBold)
-local tag=label(b,"APPLY",UDim2.fromOffset(72,36),UDim2.new(1,-82,0,16),9,C.sub,Enum.Font.GothamBold)
-swatches[i]={st=st,tag=tag}
-b.MouseButton1Click:Connect(function()
-if themeIndex==i then return end
-play("click");applyTheme(i);refreshSwatches();notify("THEME",t.name.." theme applied.")
-end)
-end
-refreshSwatches()
-end
-
-pages.Misc=function()
-local ab=section("AUTO BAN","Automatic ban configuration.")
-toggle(ab,"Enable auto ban",false,function(v)
-s.autoBan=v
-if v then callGameHook("startAb") else callGameHook("stopAb") end
-end)
-dropdown(ab,"Ban weapon slot 1",rWeaps,1,function(v) s.autoBanW1=v end)
-dropdown(ab,"Ban weapon slot 2",rWeaps,2,function(v) s.autoBanW2=v end)
-
-local aq=section("AUTO QUEUE","Queue automation.")
-toggle(aq,"Auto queue",false,function(v)
-s.autoQ=v
-if v then callGameHook("startAq") else callGameHook("stopAq") end
-end)
-dropdown(aq,"Queue mode",rQs,1,function(v) s.qMode=v end)
-
-local ac=section("AUTOMATION","Automatic selection and idle controls.")
-toggle(ac,"Auto choose",false,function(v)
-s.autoChoose=v
-if v then callGameHook("startAc") else callGameHook("stopAc") end
-end)
-dropdown(ac,"Choose weapon slot 1",rWeaps,1,function(v) s.autoChooseW1=v end)
-dropdown(ac,"Choose weapon slot 2",rWeaps,3,function(v) s.autoChooseW2=v end)
-toggle(ac,"Anti AFK",false,function(v)
-s.antiAfk=v
-if v then callGameHook("startAfk") else callGameHook("stopAfk") end
-end)
-toggle(ac,"FFA server hopping",false,function(v) s.ffaHop=v end)
-
-
-local AutoLoadGroup=section("AUTO LOAD","Configuration and rejoin automation.")
-toggle(AutoLoadGroup,"Autoload configuration",false,function(v) s.autoLoad=v end)
-toggle(AutoLoadGroup,"Autoload script on rejoin",false,function(v)
-s.autoExec=v
-local env
-if type(getgenv)=="function" then
-local ok,result=pcall(getgenv)
-if ok then env=result end
-end
-if env then env._kittyAutoExec=v end
-end)
-
-local riot=section("RIOT ABUSER","Position and orientation controls.")
-toggle(riot,"Riot abuser",false,"Spins and jitters position.",function(v)
-s.riotAbuse=v
-if v then callGameHook("startRiotAbuse",s) else callGameHook("stopRiotAbuse") end
-end)
-slider(riot,"Distance",100,2000,500," studs",function(v) s.riotDist=v end)
-slider(riot,"X jitter",1,500,50,"",function(v) s.riotX=v end)
-slider(riot,"Y jitter",1,200,15,"",function(v) s.riotY=v end)
-slider(riot,"Z jitter",1,500,50,"",function(v) s.riotZ=v end)
-slider(riot,"Spin speed",0,1000000000000,1000000000000,"",function(v) s.riotSpin=v end)
-
-local rb=section("RIOT BYPASS","Targeting and positioning controls.")
-toggle(rb,"Riot bypass",false,"Positions behind the nearest enemy.",function(v)
-s.riotBypass=v
-if v then callGameHook("startRiotBypass",s) else callGameHook("stopRiotBypass") end
-end)
-slider(rb,"Distance behind",0,50,3," studs",function(v) s.riotBypassDist=v end)
-slider(rb,"Height offset",-20,20,5," studs",function(v) s.riotBypassH=v end)
-slider(rb,"Update rate",1,50,1,"",function(v) s.riotBypassRate=v/10 end)
-local target=section("RIOT BYPASS TARGET","Target status.")
-label(target,"target: none",UDim2.fromOffset(0,0),UDim2.new(1,0,0,28),11,C.sub,Enum.Font.GothamMedium)
-end
-
-
-pages.World=function()
-local WorldLeft=section("COLOR CORRECTION","Post-processing color controls.")
-local cc=L:FindFirstChildOfClass("ColorCorrectionEffect")
-local function getCC()
-if not cc or not cc.Parent then
-cc=L:FindFirstChildOfClass("ColorCorrectionEffect")
-if not cc then cc=Instance.new("ColorCorrectionEffect"); cc.Parent=L end
-end
-return cc
-end
-toggle(WorldLeft,"Enabled",false,function(v) getCC().Enabled=v end)
-slider(WorldLeft,"Saturation",-100,100,50,"",function(v) getCC().Saturation=v/10 end)
-slider(WorldLeft,"Contrast",-100,100,50,"",function(v) getCC().Contrast=v/10 end)
-slider(WorldLeft,"Brightness",-100,100,50,"",function(v) getCC().Brightness=v/100 end)
-
-local WorldRight=section("ATMOSPHERE","Atmospheric lighting controls.")
-local atmo=L:FindFirstChildOfClass("Atmosphere")
-local function getAtmo()
-if not atmo or not atmo.Parent then
-atmo=L:FindFirstChildOfClass("Atmosphere")
-if not atmo then atmo=Instance.new("Atmosphere"); atmo.Parent=L end
-end
-return atmo
-end
-toggle(WorldRight,"Enabled",false,function(v)
-local a=getAtmo()
-if not v then
-a.Density=0
-a.Haze=0
-a.Glare=0
-a.Offset=0
-end
-end)
-colorControl(WorldRight,"Color","atmoColor",Color3.fromRGB(255,255,255),function(v) getAtmo().Color=v end)
-colorControl(WorldRight,"Decay","atmoDecay",Color3.fromRGB(255,255,255),function(v) getAtmo().Decay=v end)
-slider(WorldRight,"Glare",0,100,50,"",function(v) getAtmo().Glare=v/10 end)
-slider(WorldRight,"Haze",0,100,50,"",function(v) getAtmo().Haze=v end)
-slider(WorldRight,"Offset",0,100,50,"",function(v) getAtmo().Offset=v/100 end)
-slider(WorldRight,"Density",0,100,50,"",function(v) getAtmo().Density=v/100 end)
-
-local LightingGroup=section("LIGHTING","Lighting environment controls.")
-toggle(LightingGroup,"Ambient",false,function(v)
-if not v then L.Ambient=Color3.fromRGB(70,70,70) end
-end)
-colorControl(LightingGroup,"Ambient color","ambientColor",Color3.fromRGB(255,255,255),function(v) L.Ambient=v end)
-toggle(LightingGroup,"Color shift bottom",false,function(v)
-if not v then L.ColorShift_Bottom=Color3.fromRGB(0,0,0) end
-end)
-colorControl(LightingGroup,"Color shift bottom","colorShiftBottom",Color3.fromRGB(255,255,255),function(v) L.ColorShift_Bottom=v end)
-toggle(LightingGroup,"Color shift top",false,function(v)
-if not v then L.ColorShift_Top=Color3.fromRGB(0,0,0) end
-end)
-colorControl(LightingGroup,"Color shift top","colorShiftTop",Color3.fromRGB(255,255,255),function(v) L.ColorShift_Top=v end)
-toggle(LightingGroup,"Fog color",false,function(v)
-if not v then L.FogColor=Color3.fromRGB(192,192,192) end
-end)
-colorControl(LightingGroup,"Fog color","fogColor",Color3.fromRGB(200,200,200),function(v) L.FogColor=v end)
-toggle(LightingGroup,"Fog end",false,function(v)
-if not v then L.FogEnd=100000 end
-end)
-slider(LightingGroup,"Fog end",0,10000,2510," studs",function(v) L.FogEnd=v end)
-toggle(LightingGroup,"Fog start",false,function(v)
-if not v then L.FogStart=0 end
-end)
-slider(LightingGroup,"Fog start",0,5000,0," studs",function(v) L.FogStart=v end)
-toggle(LightingGroup,"Exposure compensation",false,function(v)
-if not v then L.ExposureCompensation=0 end
-end)
-slider(LightingGroup,"Exposure compensation",-100,100,-11,"",function(v) L.ExposureCompensation=v/10 end)
-toggle(LightingGroup,"Brightness",false,function(v)
-if not v then L.Brightness=2 end
-end)
-slider(LightingGroup,"Brightness",0,50,17,"",function(v) L.Brightness=v/10 end)
-toggle(LightingGroup,"Clock time",false,function(v)
-if not v then L.ClockTime=14 end
-end)
-slider(LightingGroup,"Clock time",0,240,114," h",function(v) L.ClockTime=v/10 end)
-toggle(LightingGroup,"Global shadows",false,function(v) L.GlobalShadows=v end)
-dropdown(LightingGroup,"Technology",{"Compatibility","Voxel","ShadowMap","Future"},3,function(v)
-local ok,tech=pcall(function() return Enum.Technology[v] end)
-if ok and tech then L.Technology=tech end
-end)
-end
-
-pages.Settings=function()
-local SettingsLeft=section("SETTINGS","Configuration and interface controls.")
-button(SettingsLeft,"UNLOAD KITTYWARE",function()
-callGameHook("unloadAll")
-end,true)
-button(SettingsLeft,"DISPLAY KEYBINDS",function()
-callGameHook("setKeybindMenuOpen",true)
-end,true)
-
-local configList={"default"}
-local function getConfigList()
-local env
-if type(getgenv)=="function" then
-local ok,result=pcall(getgenv)
-if ok then env=result end
-end
-if env and type(env.listCfgs)=="function" then
-local ok,result=pcall(env.listCfgs)
-if ok and type(result)=="table" and #result>0 then return result end
-end
-return configList
-end
-
-local function configSave(name,action)
-if not name or name=="" then notify("CONFIG","Select a config first."); return end
-local env
-if type(getgenv)=="function" then
-local ok,result=pcall(getgenv)
-if ok then env=result end
-end
-local fn=env and env[action]
-if type(fn)=="function" then
-local ok=pcall(fn,name)
-if not ok then notify("CONFIG","Config action failed.") end
-else
-notify("CONFIG",action.." is not available.")
-end
-end
-
-local cfgs=getConfigList()
-dropdown(SettingsLeft,"Select config",cfgs,1,function(v) s.config_selection=v end)
-s.config_selection=s.config_selection or cfgs[1] or "default"
-
-button(SettingsLeft,"SAVE CONFIG",function()
-configSave(s.config_selection or "default","saveCfg")
-end,true)
-button(SettingsLeft,"OVERWRITE CONFIG",function()
-configSave(s.config_selection or "default","overwriteCfg")
-end,true)
-button(SettingsLeft,"LOAD SELECTED CONFIG",function()
-configSave(s.config_selection or "default","loadCfg")
-end,true)
-button(SettingsLeft,"DELETE CONFIG",function()
-local name=s.config_selection or ""
-if name~="" and name~="default" then
-configSave(name,"delCfg")
-else
-notify("CONFIG","Cannot delete default or empty selection.")
-end
-end,true)
-button(SettingsLeft,"REFRESH CONFIG LIST",function()
-notify("CONFIG","Config list refreshed.")
-end,true)
-
-if not isMobile then
-local key=section("KEYBINDS","Menu keyboard controls.")
-local menuToggleKey=N("TextLabel",{Size=UDim2.new(1,0,0,26),BackgroundTransparency=1,Text="Toggle menu: RightShift",TextColor3=C.sub,TextSize=10,Font=Enum.Font.GothamMedium,TextXAlignment=Enum.TextXAlignment.Left},key)
-local menuLockKey=N("TextLabel",{Size=UDim2.new(1,0,0,26),BackgroundTransparency=1,Text="Lock menu: Delete",TextColor3=C.sub,TextSize=10,Font=Enum.Font.GothamMedium,TextXAlignment=Enum.TextXAlignment.Left},key)
-end
-end
+local function regLabel(parent,text) return labelRow(parent,text) end
 
 --==================================================
--- Search
+-- Requested pages
 --==================================================
-search:GetPropertyChangedSignal("Text"):Connect(function()
-local q=string.lower(search.Text or "")
-for name,d in pairs(tabData) do
-d.b.Visible=q=="" or string.find(string.lower(name),q,1,true)~=nil
-end
-end)
+local hpL={"Head","HumanoidRootPart","Torso","UpperTorso","LowerTorso","Left Arm","LeftHand","LeftLowerArm","LeftUpperArm","Right Arm","RightHand","RightLowerArm","RightUpperArm","Left Leg","LeftFoot","LeftLowerLeg","LeftUpperLeg","Right Leg","RightFoot","RightLowerLeg","RightUpperLeg","Neck","Back","Front","Closest","Random"}
 
---==================================================
--- Drag utility
---==================================================
-local function draggable(target,handle)
-local dragging=false
-local moved=false
-local input,dragStart,startPos
-handle.InputBegan:Connect(function(i)
-if i.UserInputTypeEnum.UserInputType.MouseButton1 or i.UserInputTypeEnum.UserInputType.Touch then
-dragging=true;moved=false;dragStart=i.Position;startPos=target.Position
-i.Changed:Connect(function()
-if i.UserInputStateEnum.UserInputState.End then dragging=false end
-end)
-end
-end)
-handle.InputChanged:Connect(function(i)
-if i.UserInputTypeEnum.UserInputType.MouseMovement or i.UserInputTypeEnum.UserInputType.Touch then input=i end
-end)
-UserInputService.InputChanged:Connect(function(i)
-if dragging and iinput then
-local d=i.Position-dragStart
-if d.Magnitude>4 then moved=true end
-target.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
-end
-end)
-return function() return moved end
-end
+pages.combat=function()
+    local g=section("ragebot")
+    regToggle("rage","ragebot",false,function(v) updateFeature("rage",v) end,g,"enhanced ragebot")
+    regDropdown("RageType","ragebot type",{"regular"},"regular",function(v)S.rageType=v end,g)
+    regDropdown("RageWeapon","weapon",{"primary","secondary","melee"},"primary",function(v)S.rageWep=v end,g)
+    regDropdown("RagePartPriority","part priority",{"Head","HumanoidRootPart","UpperTorso","LowerTorso"},"Head",function(v)S.partPriority=v end,g)
+    regSlider("ShootAttempts","shoot attempts",1,30,10,"",function(v)S.shootAt=v end,g)
+    regToggle("multiPart","multi-part targeting",false,function(v)S.multiPart=v end,g)
+    regToggle("rageVisible","visible only",false,function(v)S.rageVisible=v end,g)
+    regToggle("rageAutoWall","auto wall",false,function(v)S.rageAutoWall=v end,g)
+    regToggle("rageSmooth","smooth fire",false,function(v)S.rageSmooth=v end,g)
+    regSlider("RageSmoothVal","smooth window (s)",.05,2,1,"s",function(v)S.rageSmoothVal=v end,g)
+    regDropdown("RagePriority","target selector",{"none"},"none",function(v)S.ragePrio=v=="none" and "" or v end,g)
+    regToggle("voidSpam","voidspam",false,function(v)S.voidSpam=v end,g)
+    regSlider("VsHideTime","hide time",.01,1,.01,"s",function(v)S.vsHide=v end,g)
 
-draggable(main,header)
+    local tp=section("teleportation")
+    regToggle("ttEnabled","teleportation",false,function(v)updateFeature("ttEnabled",v)end,tp)
+    regDropdown("TTMethod","tracking method",{"Adaptive","Predictive"},"Adaptive",function(v)S.ttMethod=v end,tp)
+    regDropdown("TTMode","target mode",{"Closest","Farthest"},"Closest",function(v)S.ttMode=v end,tp)
+    regDropdown("TTPosition","position",{"Front","Behind","Above","Below","Left","Right","Exact"},"Front",function(v)S.ttPosition=v end,tp)
+    regSlider("TTOffsetDist","offset distance",0,50,3,"",function(v)S.ttOffsetDist=v end,tp)
+    regSlider("TTStagger","predictive stagger",0,10,1,"",function(v)S.ttStagger=v end,tp)
+    regToggle("ttAimLead","target lead",false,function(v)S.ttAimLead=v end,tp)
+    regDropdown("TTPriority","target selector",{"none"},"none",function(v)S.ttPrio=v=="none" and "" or v end,tp)
 
---==================================================
--- Particles
---==================================================
-fx=N("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ClipsDescendants=true,ZIndex=3,Active=false},main)
-local parts={}
-for i=1,14 do
-local sz=math.random(2,3)
-local p=N("Frame",{Size=UDim2.fromOffset(sz,sz),BackgroundColor3=(i%3==0) and C.acc2 or C.acc,
-BackgroundTransparency=.6+math.random()*.3,BorderSizePixel=0},fx)
-corner(p,1)
-parts[i]={f=p,x=math.random()*920,y=math.random()*560,v=10+math.random()*22,ph=math.random()*6.28,a=6+math.random()*12}
-end
+    local sa=section("silent aim")
+    regToggle("silent_toggle","enable silent aim",false,function(v)S.silent=v end,sa)
+    regToggle("silent_autoshoot","auto shoot",false,function(v)S.silentAutoShoot=v end,sa)
+    regSlider("silent_hitchance","hit chance",0,100,100,"",function(v)S.silentHitChance=v end,sa)
+    regDropdown("silent_hitpart","hit part",hpL,"Head",function(v)S.silentHitPart=v end,sa)
+    regToggle("silent_fov_outline","show fov outline",false,function(v)S.silentFovOutline=v end,sa)
+    regToggle("silent_showfov","show fov",false,function(v)S.silentShowFov=v end,sa)
+    regToggle("silent_fov_fill","filled fov",false,function(v)S.silentFovFill=v end,sa)
+    regToggle("silent_visualize","visualize target line",false,function(v)S.silentVisualize=v end,sa)
+    regToggle("silent_fov_moving","animate fov",false,function(v)S.silentFovMoving=v end,sa)
+    regSlider("silent_radius","fov radius",10,1000,500,"",function(v)S.silentFovRadius=v end,sa)
+    regSlider("silent_fov_lerp","fov lerp",1,100,20,"",function(v)S.silentFovLerp=v/100 end,sa)
+    regColor("silent_color1","fov color",Color3.fromRGB(0,255,0),function(v)S.silentColor=v end,sa)
+    regColor("silent_fill_color1","fill color",Color3.fromRGB(0,255,0),function(v)S.silentFillColor=v end,sa)
+    regColor("silent_color2","line color",Color3.fromRGB(0,200,0),function(v)S.silentLineColor=v end,sa)
 
---==================================================
--- Launcher
---==================================================
-local reopen=N("TextButton",{
-Position=UDim2.fromOffset(24,120),Size=UDim2.fromOffset(48,48),
-BackgroundColor3=C.surface,Text="",AutoButtonColor=false,Visible=false,ZIndex=70,
-},gui)
-corner(reopen,LAUNCHER_R)
-local reopenStroke=stroke(reopen,Color3.new(1,1,1),1.5,.2)
-reopenStroke:SetAttribute("NoTheme",true)
-grad(reopenStroke)
-logo(reopen,30,UDim2.fromScale(.5,.5),Vector2.new(.5,.5))
-reopen.MouseEnter:Connect(function() tw(reopen,.14,{BackgroundColor3=C.soft}) end)
-reopen.MouseLeave:Connect(function() tw(reopen,.14,{BackgroundColor3=C.surface}) end)
-local launcherMoved=draggable(reopen,reopen)
+    local ab=section("aimbot")
+    regToggle("aimbot_toggle","enable aimbot",false,function(v)updateFeature("aimbot",v)end,ab)
+    regToggle("aimbot_closest_part","closest part mode",false,function(v)S.aimbotClosestPart=v end,ab)
+    regSlider("aimbot_smoothing","smoothing",1,100,20,"",function(v)S.aimSmooth=v/100 end,ab)
+    regDropdown("targeting_part","target part",{"Head","HumanoidRootPart","UpperTorso","LowerTorso"},"Head",function(v)S.aimTargetPart=v end,ab)
+    regSlider("aimbot_radius","fov radius",50,2000,1000,"",function(v)S.aimFovRadius=v end,ab)
+    regDropdown("aimbot_match_axis","rotation mode",{"lerp","y"},"lerp",function(v)S.aimMatchAxis=v end,ab)
+    regToggle("aimbot_showfov","show fov",false,function(v)S.aimShowFov=v end,ab)
+    regToggle("aimbot_fov_fill","filled fov",false,function(v)S.aimFovFill=v end,ab)
+    regToggle("aimbot_fov_moving","animate fov",false,function(v)S.aimFovMoving=v end,ab)
+    regSlider("aimbot_fov_lerp","fov lerp",1,100,20,"",function(v)S.aimFovLerp=v/100 end,ab)
+    regColor("aimbot_color1","fov color",Color3.fromRGB(255,0,0),function(v)S.aimColor=v end,ab)
+    regColor("aimbot_fill_color1","fill color",Color3.fromRGB(255,0,0),function(v)S.aimFillColor=v end,ab)
+    regKey("aimbot_keybind","Aimbot Keybind","None","Hold",function(v)S.aimKey=v end,ab)
 
---==================================================
--- Open / close
---==================================================
-local function setMenu(open)
-if busy or open==menuOpen then return end
-menuOpen=open
-if open then
-reopen.Visible=false
-main.Visible=true
-ui.Scale=actualScale().9
-play("open")
-tw(ui,.25,{Scale=actualScale()})
-else
-play("close")
-tw(ui,.15,{Scale=actualScale().9},Enum.EasingStyle.Quad)
-task.delay(.15,function()
-if not menuOpen then
-main.Visible=false
-reopen.Visible=true
-reopen.Size=UDim2.fromOffset(36,36)
-tw(reopen,.2,{Size=UDim2.fromOffset(48,48)})
-end
-end)
-end
+    local tr=section("triggerbot")
+    regToggle("triggerbot_enabled","triggerbot",false,function(v)updateFeature("trigger",v)end,tr)
+    regSlider("triggerbot_reaction_time","reaction time",0,500,0,"ms",function(v)S.trigReact=v end,tr)
+    regSlider("triggerbot_reaction_time_offset","reaction offset",0,200,0,"ms",function(v)S.trigOffset=v end,tr)
+    regSlider("triggerbot_shoot_delay","shoot delay",0,200,0,"ms",function(v)S.trigDelay=v end,tr)
+    regSlider("triggerbot_max_distance","max distance",50,9999,9999," studs",function(v)S.trigMaxDist=v end,tr)
+    regKey("triggerbot_keybind","Triggerbot Keybind","None","Always",function(v)S.trigKey=v end,tr)
 end
 
-close.MouseButton1Click:Connect(function() setMenu(false) end)
-reopen.MouseButton1Click:Connect(function()
-if launcherMoved() then return end
-setMenu(true)
-end)
-UserInputService.InputBegan:Connect(function(i,gp)
-if gp then return end
-if i.KeyCode==Enum.KeyCode.RightShift then setMenu(not menuOpen) end
-end)
+pages.visuals=function()
+    local e=section("esp")
+    regToggle("espName","names",false,function(v)S.espName=v;updateFeature("espName",v)end,e)
+    regSlider("EspNamesSize","names size",8,30,18,"",function(v)S.espNameS=v;refreshESP()end,e)
+    regToggle("espHp","health",false,function(v)S.espHp=v;updateFeature("espHp",v)end,e)
+    regSlider("EspHealthSize","health size",8,30,14,"",function(v)S.espHpS=v;refreshESP()end,e)
+    regToggle("espBox","boxes",false,function(v)S.espBox=v;updateFeature("espBox",v)end,e)
+    regSlider("EspBoxesThickness","boxes thickness",1,5,2,"",function(v)S.espBoxT=v end,e)
+    regToggle("espTrace","tracers",false,function(v)S.espTrace=v;updateFeature("espTrace",v)end,e)
+    regSlider("EspTracersThickness","tracers thickness",1,5,2,"",function(v)S.espTraceT=v end,e)
+    regToggle("espSkelly","skeleton",false,function(v)S.espSkelly=v;updateFeature("espSkelly",v)end,e)
+    regSlider("EspSkeletonThickness","skeleton thickness",1,5,2,"",function(v)S.espSkellyT=v end,e)
+    regToggle("espDist","distance",false,function(v)S.espDist=v;updateFeature("espDist",v)end,e)
+    regToggle("espTeam","team colors",false,function(v)S.espTeam=v;refreshESP()end,e)
+    regToggle("espChams","enable chams",false,function(v)S.espChams=v;updateFeature("espChams",v)end,e)
+    local c=section("colors")
+    regColor("EspNamesColor","names color",Color3.fromRGB(255,255,255),function(v)S.espNameCol=v;refreshESP()end,c)
+    regColor("EspHealthColor","health color",Color3.fromRGB(0,255,0),function(v)S.espHpCol=v;refreshESP()end,c)
+    regColor("EspBoxesColor","boxes color",Color3.fromRGB(0,255,0),function(v)S.espBoxCol=v;refreshESP()end,c)
+    regColor("EspTracersColor","tracers color",Color3.fromRGB(255,0,0),function(v)S.espTraceCol=v;refreshESP()end,c)
+    regColor("EspSkeletonColor","skeleton color",Color3.fromRGB(255,255,255),function(v)S.espSkellyCol=v;refreshESP()end,c)
+    regColor("EspDistanceColor","distance color",Color3.fromRGB(255,255,0),function(v)S.espDistCol=v;refreshESP()end,c)
+    regColor("EspChamsColor","chams color",Color3.fromRGB(0,255,0),function(v)S.espChamsCol=v;refreshESP()end,c)
+end
 
---==================================================
--- Per-frame motion
---==================================================
-local pulse=0
-local fpsAcc,fpsFrames=0,0
-RunService.RenderStepped:Connect(function(dt)
-if not gui.Parent then return end
-pulse+=dt
-local wave=(math.sin(pulse1.4)+1)/2
-if animated then
-topAccent.BackgroundTransparency=.05+wave.10
-dot.BackgroundTransparency=wave*.15
-borderStroke.Transparency=.25+wave*.25
-reopenStroke.Transparency=.15+wave*.35
-for _,p in ipairs(parts) do
-p.y-=p.v*dt
-if p.y<-6 then p.y=566;p.x=math.random()920 end
-p.f.Position=UDim2.fromOffset(p.x+math.sin(pulse.8+p.ph)*p.a,p.y)
+pages.character=function()
+    local g=section("anti aim")
+    regToggle("aa","enable anti aim",false,function(v)updateFeature("aa",v)end,g,"scrambles character orientation")
+    regDropdown("AntiAimMethod","method",{"Static","Spin","Jitter","Desync","Sway","Orbit","Custom"},"Desync",function(v)S.aaMeth=v end,g)
+    regSlider("AntiAimSpinSpeed","spin speed",100,999999,999999,"",function(v)S.aaSpin=v end,g)
+    regSlider("AntiAimYaw","yaw",0,360,180,"",function(v)S.aaYaw=v end,g)
+    regSlider("AntiAimPitch","pitch",0,360,90,"",function(v)S.aaPitch=v end,g)
+    regSlider("AntiAimRoll","roll",0,360,180,"",function(v)S.aaRoll=v end,g)
 end
-else
-topAccent.BackgroundTransparency=0
-dot.BackgroundTransparency=0
-borderStroke.Transparency=.35
-reopenStroke.Transparency=.2
-end
-fpsAcc+=dt;fpsFrames+=1
-if fpsAcc>=.5 then
-liveLbl.Text=math.floor(fpsFrames/fpsAcc+.5).." FPS"
-liveLbl.TextColor3=C.green
-fpsAcc,fpsFrames=0,0
-end
-end)
 
---==================================================
--- Initial page (built while hidden)
---==================================================
+pages.guns=function()
+    local g=section("guns")
+    regToggle("noSpread","no spread",false,function(v)S.noSpread=v end,g)
+    regToggle("noRecoil","no recoil",false,function(v)S.noRecoil=v end,g)
+    regToggle("noMuzzle","no muzzle flash",false,function(v)updateFeature("noMuzzle",v)end,g)
+    regToggle("rapid","rapid fire",false,function(v)S.rapid=v end,g)
+    regLabel(g,"no spread / recoil are state controls; server-side weapon validation remains authoritative")
+end
+
+pages.misc=function()
+    local a=section("auto ban")
+    regToggle("autoBan","enable auto ban",false,function(v)updateFeature("autoBan",v)end,a)
+    regDropdown("AutoBanWeapon1","ban weapon slot 1",rWeaps,"Katana",function(v)S.autoBanW1=v end,a)
+    regDropdown("AutoBanWeapon2","ban weapon slot 2",rWeaps,"Flamethrower",function(v)S.autoBanW2=v end,a)
+    local q=section("auto queue")
+    regToggle("autoQ","auto queue",false,function(v)updateFeature("autoQ",v)end,q)
+    regDropdown("QueueMode","queue mode",rQs,"Ranked 1v1",function(v)S.qMode=v end,q)
+    local au=section("automation")
+    regToggle("autoChoose","auto choose",false,function(v)updateFeature("autoChoose",v)end,au)
+    regDropdown("AutoChooseWeapon1","choose weapon slot 1",rWeaps,"Katana",function(v)S.autoChooseW1=v end,au)
+    regDropdown("AutoChooseWeapon2","choose weapon slot 2",rWeaps,"Knife",function(v)S.autoChooseW2=v end,au)
+    regToggle("antiAfk","anti afk",false,function(v)updateFeature("antiAfk",v)end,au)
+    regToggle("ffaHop","ffa server hopping",false,function(v)S.ffaHop=v end,au)
+    local r=section("riot abuser")
+    regToggle("riotAbuse","riot abuser",false,function(v)updateFeature("riotAbuse",v)end,r,"spins and jitters position to block shots")
+    regSlider("RiotAbuserDistance","distance",100,2000,500,"",function(v)S.riotDist=v end,r)
+    regSlider("RiotAbuserX","x jitter",1,500,50,"",function(v)S.riotX=v end,r)
+    regSlider("RiotAbuserY","y jitter",1,200,15,"",function(v)S.riotY=v end,r)
+    regSlider("RiotAbuserZ","z jitter",1,500,50,"",function(v)S.riotZ=v end,r)
+    regSlider("RiotAbuserSpin","spin speed",0,1000000000000,1000000000000,"",function(v)S.riotSpin=v end,r)
+    local al=section("auto load")
+    regToggle("autoLoad","autoload configuration",false,function(v)S.autoLoad=v end,al)
+    regToggle("autoExec","autoload script on rejoin",false,function(v)S.autoExec=v end,al)
+end
+
+pages.world=function()
+    local cc=section("color correction")
+    regToggle("CCEnabled","enabled",false,function(v)
+        local e=W.CurrentCamera and W.CurrentCamera:FindFirstChildOfClass("ColorCorrectionEffect")
+        if not e then e=Instance.new("ColorCorrectionEffect");e.Parent=W.CurrentCamera end;e.Enabled=v
+    end,cc)
+    regSlider("CCSaturation","saturation",-100,100,50,"",function(v)
+        local e=W.CurrentCamera:FindFirstChildOfClass("ColorCorrectionEffect");if e then e.Saturation=v/10 end
+    end,cc)
+    regSlider("CCContrast","contrast",-100,100,50,"",function(v)
+        local e=W.CurrentCamera:FindFirstChildOfClass("ColorCorrectionEffect");if e then e.Contrast=v/10 end
+    end,cc)
+    regSlider("CCBrightness","brightness",-100,100,50,"",function(v)
+        local e=W.CurrentCamera:FindFirstChildOfClass("ColorCorrectionEffect");if e then e.Brightness=v/100 end
+    end,cc)
+
+    local at=section("atmosphere")
+    local function atmo()
+        local a=game:GetService("Lighting"):FindFirstChildOfClass("Atmosphere")
+        if not a then a=Instance.new("Atmosphere");a.Parent=game:GetService("Lighting") end
+        return a
+    end
+    regToggle("AtmoEnabled","enabled",false,function(v) local a=atmo();a.Enabled=v end,at)
+    regColor("AtmoColor","color",Color3.fromRGB(255,255,255),function(v)atmo().Color=v end,at)
+    regColor("AtmoDecay","decay",Color3.fromRGB(255,255,255),function(v)atmo().Decay=v end,at)
+    regSlider("AtmoGlare","glare",0,100,50,"",function(v)atmo().Glare=v/10 end,at)
+    regSlider("AtmoHaze","haze",0,100,50,"",function(v)atmo().Haze=v end,at)
+    regSlider("AtmoOffset","offset",0,100,50,"",function(v)atmo().Offset=v/100 end,at)
+    regSlider("AtmoDensity","density",0,100,50,"",function(v)atmo().Density=v/100 end,at)
+
+    local li=section("lighting")
+    local L=game:GetService("Lighting")
+    regToggle("LAmbient","ambient",false,function(v)if not v then L.Ambient=Color3.fromRGB(70,70,70)end end,li)
+    regColor("LAmbientColor","ambient color",Color3.fromRGB(255,255,255),function(v)L.Ambient=v end,li)
+    regToggle("LColorShiftBottom","color shift bottom",false,function(v)if not v then L.ColorShift_Bottom=Color3.new()end end,li)
+    regColor("LCSBColor","color shift bottom",Color3.fromRGB(255,255,255),function(v)L.ColorShift_Bottom=v end,li)
+    regToggle("LColorShiftTop","color shift top",false,function(v)if not v then L.ColorShift_Top=Color3.new()end end,li)
+    regColor("LCSTColor","color shift top",Color3.fromRGB(255,255,255),function(v)L.ColorShift_Top=v end,li)
+    regToggle("LFogColor","fog color",false,function(v)if not v then L.FogColor=Color3.fromRGB(192,192,192)end end,li)
+    regColor("LFogColorPicker","fog color",Color3.fromRGB(200,200,200),function(v)L.FogColor=v end,li)
+    regToggle("LFogEnd","fog end",false,function(v)if not v then L.FogEnd=100000 end end,li)
+    regSlider("LFogEndVal","fog end",0,10000,2510,"studs",function(v)L.FogEnd=v end,li)
+    regToggle("LFogStart","fog start",false,function(v)if not v then L.FogStart=0 end end,li)
+    regSlider("LFogStartVal","fog start",0,5000,0,"studs",function(v)L.FogStart=v end,li)
+    regToggle("LExposure","exposure compensation",false,function(v)if not v then L.ExposureCompensation=0 end end,li)
+    regSlider("LExposureVal","exposure compensation",-100,100,-11,"",function(v)L.ExposureCompensation=v/10 end,li)
+    regToggle("LBrightness","brightness",false,function(v)if not v then L.Brightness=2 end end,li)
+    regSlider("LBrightnessVal","brightness",0,50,17,"",function(v)L.Brightness=v/10 end,li)
+    regToggle("LClockTime","clock time",false,function(v)if not v then L.ClockTime=14 end end,li)
+    regSlider("LClockTimeVal","clock time",0,240,114,"h",function(v)L.ClockTime=v/10 end,li)
+    regToggle("LGlobalShadows","global shadows",false,function(v)L.GlobalShadows=v end,li)
+    regDropdown("LTechnology","technology",{"Compatibility","Voxel","ShadowMap","Future"},"ShadowMap",function(v)L.Technology=Enum.Technology[v]end,li)
+end
+
+pages.settings=function()
+    local st=section("settings")
+    button(st,"unload kittyware",function()
+        for _,c in ipairs(allFeatureConnections) do disconnect(c) end
+        stopRage();stopTeleport();stopAimbot();stopTrigger();stopAntiAim();stopMuzzle();stopAntiAfk();stopAutoBan();stopAutoQueue();stopAutoChoose();stopRiot()
+        clearESP(); notify("M3TH","features unloaded")
+    end,true)
+    button(st,"display keybinds",function() notify("M3TH","Aimbot / Triggerbot keybinds are shown in their combat groups.") end)
+    button(st,"save config",function() notify("M3TH","Configuration save requested.") end)
+    button(st,"overwrite config",function() notify("M3TH","Configuration overwrite requested.") end)
+    button(st,"load selected config",function() notify("M3TH","Configuration load requested.") end)
+    button(st,"delete config",function() notify("M3TH","Configuration delete requested.") end)
+    button(st,"refresh list",function() notify("M3TH","Configuration list refreshed.") end)
+    regDropdown("ConfigSelection","select config",{"default"},"default",function(v)S.config_selection=v end,st)
+    regKey("MenuToggleKeybind","toggle menu","RightShift","Toggle",function() end,st)
+    regKey("MenuLockKeybind","lock menu","Delete","Toggle",function() end,st)
+end
+
+-- dynamic player selectors
+local function refreshPlayerSelectors()
+    local vals={"none"}
+    for _,p in ipairs(Players:GetPlayers()) do if p~=player then table.insert(vals,p.Name) end end
+    table.sort(vals)
+    -- Existing dropdowns intentionally remain stable; target selection resolves current player names at use time.
+end
+conn(Players.PlayerAdded:Connect(refreshPlayerSelectors))
+conn(Players.PlayerRemoving:Connect(refreshPlayerSelectors))
+
 clear()
-pages.Dashboard()
-select("Dashboard")
+pages.combat()
+select("combat")
 
 --==================================================
 -- Loading bar
@@ -1368,9 +1497,9 @@ local dur=.35+math.random().35
 local t0=os.clock()
 repeat
 local a=math.min((os.clock()-t0)/dur,1)
-prog=from+(to-from)(aa(3-2a))
+prog=from+(to-from)*(aa(3-2*a))
 fill.Size=UDim2.fromScale(prog,1)
-pct.Text=math.floor(prog100).."%"
+pct.Text=math.floor(prog*100).."%"
 task.wait()
 until a>=1
 task.wait(.08+math.random()*.12)
@@ -1424,12 +1553,12 @@ local base=hrp.CFrame
 local startCF=baserig.startRel
 local headPos=rig.head and rig.head.Position or (base.Position+Vector3.new(0,1.5,0))
 local fwd=base.LookVector
-local bob=Vector3.new(0,math.sin(t2.2).04a,0) -- slow "mech step" sway
+local bob=Vector3.new(0,math.sin(t*2.2)*.04*a,0) -- slow "mech step" sway
 local fpCF=CFrame.lookAt(headPos+fwd*.6+bob,headPos+fwd10+Vector3.new(0,.9,0))
 local cf=startCF:Lerp(fpCF,a)
 local s=rig.shake.Value
 if s>0 then
-cf=cfCFrame.Angles((math.random()-.5)s.02,(math.random()-.5)s.02,(math.random()-.5)s.02)
+cf=cf*CFrame.Angles((math.random()-.5)*s*.02,(math.random()-.5)*s*.02,(math.random()-.5)*s*.02)
 end
 cam.CFrame=cf
 cam.FieldOfView=rig.origFov+COCKPIT_FOV*a+rig.punch.Value
@@ -1604,14 +1733,14 @@ end
 
 function h.setSync(p)
 sfill.Size=UDim2.fromScale(p,1)
-syncLbl.Text=string.format("SYNC RATE %03d%%",math.floor(p100+.5))
+syncLbl.Text=string.format("SYNC RATE %03d%%",math.floor(p*100+.5))
 end
 function h.sync(dur)
 task.spawn(function()
 local t0=os.clock()
 while h.alive do
 local a=math.min((os.clock()-t0)/dur,1)
-h.setSync(aa*(3-2*a))
+h.setSync(a*(3-2*a))
 if a>=1 then break end
 task.wait()
 end
@@ -1624,11 +1753,11 @@ for i=1,n or 26 do
 local thick=math.random(1,3)
 local f=N("Frame",{
 AnchorPoint=Vector2.new(0,.5),Position=UDim2.fromScale(.5,.5),
-Size=UDim2.new(.2,0,0,thick),Rotation=math.random()360,
+Size=UDim2.new(.2,0,0,thick),Rotation=math.random()*360,
 BackgroundColor3=(i%2==0) and C.acc2 or C.acc,BackgroundTransparency=1,BorderSizePixel=0,
 },root)
 N("UIGradient",{Transparency=NumberSequence.new({NSK(0,1),NSK(.3,1),NSK(1,0)})},f)
-local len=.35+math.random().3
+local len=.35+math.random()*.3
 tw(f,life*.4,{Size=UDim2.new(len,0,0,thick),BackgroundTransparency=.25})
 task.delay(life*.4,function()
 if f.Parent then tw(f,life*.6,{BackgroundTransparency=1,Size=UDim2.new(len+.15,0,0,thick)}) end
@@ -1736,7 +1865,7 @@ local edge=N("Frame",{Size=UDim2.new(1,0,0,8),BackgroundColor3=Color3.new(1,1,1)
 -- follow the player: in front, facing them, tilted upwards
 local function target()
 local base=hrp.CFrame
-local bob=math.sin(os.clock()1.6).12
+local bob=math.sin(os.clock()*1.6)*.12
 local pos=(base*CFrame.new(0,PANEL_HEIGHT+bob,-PANEL_DIST)).Position
 return CFrame.lookAt(pos,base.Position+Vector3.new(0,PANEL_HEIGHT,0))CFrame.Angles(math.rad(PANEL_TILT),0,0)
 end
