@@ -1,5 +1,5 @@
 --[[
-	Meridian  |  Roblox UI hub
+	Antler V2  |  Roblox UI hub
 
 	WHAT'S NEW
 		- 3 second cinematic intro (click / any key skips it)
@@ -9,7 +9,7 @@
 		- Player tab (8 features) + Visual tab (8 features), all working
 
 	API
-		local Window = Antler:CreateWindow({Name = "Meridian", Version = "", ToggleKey = Enum.KeyCode.RightShift})
+		local Window = Antler:CreateWindow({Name = "Antler", Version = "V2", ToggleKey = Enum.KeyCode.RightShift})
 		local Tab = Window:CreateTab("Name", "user")          -- icons: user, eye, gear, grid, bolt, sliders (or "rbxassetid://...")
 		local Group = Tab:AddGroup("Title", "Left" | "Right") -- a box in the tab, holds the elements below
 		Group:AddToggle({Name, Default, Keybind = Enum.KeyCode.X, Bindable = true, NoList = true, Callback = function(on) end})
@@ -35,7 +35,7 @@ local Stats = game:GetService("Stats")
 local SoundService = game:GetService("SoundService")
 
 local LocalPlayer = Players.LocalPlayer
-local GUI_NAME = "Meridian"
+local GUI_NAME = "AntlerV1"
 local rng = Random.new()
 local WHITE = Color3.new(1, 1, 1)
 
@@ -607,9 +607,6 @@ table.insert(Antler._connections, UserInputService.InputBegan:Connect(function(i
 end))
 
 local function titleRichText(name, version)
-	if version == nil or tostring(version) == "" then
-		return tostring(name)
-	end
 	return string.format('%s <i><font color="#%s">%s</font></i>', name, Theme.Secondary:ToHex(), version)
 end
 
@@ -618,7 +615,7 @@ end
 ----------------------------------------------------------------------
 function Antler:Notify(opts)
 	if type(opts) ~= "table" then opts = {Content = tostring(opts)} end
-	local title = tostring(opts.Title or "Meridian")
+	local title = tostring(opts.Title or "Antler")
 	local content = tostring(opts.Content or "")
 	local duration = opts.Duration or 4
 	local kind = string.lower(opts.Type or "info")
@@ -1596,7 +1593,7 @@ function Antler:CreateWindow(opts)
 	}, {corner(8), stroke(Theme.Accent, 1, 0.7)})
 	local brandLogo = buildAntlerLogo(brand, 24, Theme.Accent)
 	brandLogo.Position = UDim2.fromOffset(17, (BRAND - 24) / 2)
-	local brandText = makeLabel(brand, titleRichText(opts.Name or "Meridian", opts.Version or ""), {
+	local brandText = makeLabel(brand, titleRichText(opts.Name or "Antler", opts.Version or "V2"), {
 		RichText = true, Font = FONT_BOLD, TextSize = 17, TextColor3 = Theme.AccentLight,
 		Position = UDim2.fromOffset(54, 0), Size = UDim2.new(1, -60, 1, 0),
 	})
@@ -1999,7 +1996,7 @@ function Antler:CreateWindow(opts)
 	closeBtn.MouseButton1Click:Connect(function()
 		window:SetVisible(false)
 		if isMobile and launcher then launcher.Visible=true end
-		if not isMobile then Antler:Notify({Title = "Meridian", Content = "Menu hidden. Press " .. toggleKey.Name .. " to reopen.", Duration = 3}) end
+		if not isMobile then Antler:Notify({Title = "Antler", Content = "Menu hidden. Press " .. toggleKey.Name .. " to reopen.", Duration = 3}) end
 	end)
 	if launcher then launcher.MouseButton1Click:Connect(function() playUISound("open"); window:SetVisible(true) end) end
 	table.insert(self._connections, UserInputService.InputBegan:Connect(function(input, processed)
@@ -2026,7 +2023,7 @@ end
 
 Antler:PlayIntro()
 
-local Window = Antler:CreateWindow({Name="MERIDIAN", Version="", ToggleKey=Enum.KeyCode.RightShift})
+local Window = Antler:CreateWindow({Name="ANTLER", Version="V2", ToggleKey=Enum.KeyCode.RightShift})
 
 local HomeTab=Window:CreateTab("Home","home")
 local CombatTab=Window:CreateTab("Combat","combat")
