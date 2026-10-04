@@ -1,5 +1,5 @@
 --[[
-	Antler V2  |  Roblox UI hub
+	Merdian  |  Roblox UI hub
 
 	WHAT'S NEW
 		- 3 second cinematic intro (click / any key skips it)
@@ -9,7 +9,7 @@
 		- Player tab (8 features) + Visual tab (8 features), all working
 
 	API
-		local Window = Antler:CreateWindow({Name = "Antler", Version = "V2", ToggleKey = Enum.KeyCode.RightShift})
+		local Window = Antler:CreateWindow({Name = "Merdian", Version = "V2", ToggleKey = Enum.KeyCode.RightShift})
 		local Tab = Window:CreateTab("Name", "user")          -- icons: user, eye, gear, grid, bolt, sliders (or "rbxassetid://...")
 		local Group = Tab:AddGroup("Title", "Left" | "Right") -- a box in the tab, holds the elements below
 		Group:AddToggle({Name, Default, Keybind = Enum.KeyCode.X, Bindable = true, NoList = true, Callback = function(on) end})
@@ -35,7 +35,7 @@ local Stats = game:GetService("Stats")
 local SoundService = game:GetService("SoundService")
 
 local LocalPlayer = Players.LocalPlayer
-local GUI_NAME = "AntlerV1"
+local GUI_NAME = "MerdianV2"
 local rng = Random.new()
 local WHITE = Color3.new(1, 1, 1)
 
@@ -725,7 +725,7 @@ do
 	local frames, acc = 0, 0
 	local function refresh(fps, ping)
 		watermarkLabel.Text = string.format(
-			'<font color="#%s"><b>antler</b></font> <font color="#%s"><i>v2</i></font>  |  %s  |  %d fps  |  %d ms  |  %s',
+			'<font color="#%s"><b>merdian</b></font> <font color="#%s"><i>v2</i></font>  |  %s  |  %d fps  |  %d ms  |  %s',
 			Theme.AccentLight:ToHex(), Theme.Secondary:ToHex(), LocalPlayer.DisplayName, fps, ping, os.date("%H:%M")
 		)
 	end
@@ -830,7 +830,7 @@ function Antler:PlayIntro()
 		-- title: ANTLER + italic V2, letter by letter
 		local TITLE_SIZE, TRACK = 40, 7
 		local parts = {}
-		for ch in string.gmatch("ANTLER", ".") do table.insert(parts, {ch = ch, color = Theme.Text, italic = false}) end
+		for ch in string.gmatch("MERDIAN", ".") do table.insert(parts, {ch = ch, color = Theme.Text, italic = false}) end
 		table.insert(parts, {gap = 16})
 		for ch in string.gmatch("V2", ".") do table.insert(parts, {ch = ch, color = Theme.Secondary, italic = true}) end
 		local totalW = 0
@@ -991,7 +991,7 @@ function Antler:PlayIntro()
 	end)
 
 	if not ok then
-		warn("[Antler] intro error: " .. tostring(err))
+		warn("[Merdian] intro error: " .. tostring(err))
 		cleanup()
 	end
 end
@@ -1230,46 +1230,23 @@ function Elements.AddLabel(g, o)
 	return {SetText = function(_, t) l.Text = t end}
 end
 
------------------------------------------------- stepped slider (Neverlose-style segmented control)
-function Elements.AddSteppedSlider(g, o)
-	local name=o.Name or "Level"
-	local steps=math.max(2, o.Steps or 10)
-	local value=math.clamp(o.Default or 1,1,steps)
-	local row=rowBase(g,name,48)
-	makeLabel(row,name,{Font=FONT_MEDIUM,TextSize=13,Position=UDim2.fromOffset(10,4),Size=UDim2.new(1,-20,0,18)})
-	local holder=create("Frame",{Position=UDim2.fromOffset(10,27),Size=UDim2.new(1,-20,0,12),BackgroundTransparency=1,Parent=row})
-	local buttons={}
-	local api={}
-	local function paint()
-		for i,b in ipairs(buttons) do
-			local on=i<=value
-			tween(b,{BackgroundColor3=on and Theme.Accent or Theme.Off,BackgroundTransparency=on and .05 or .05},.1)
-		end
-	end
-	for i=1,steps do
-		local b=create("TextButton",{Size=UDim2.new(1/steps,-2,1,0),Position=UDim2.new((i-1)/steps,1,0,0),BackgroundColor3=Theme.Off,BorderSizePixel=0,Text="",AutoButtonColor=false,Parent=holder},{corner(2)})
-		buttons[i]=b
-		b.MouseButton1Click:Connect(function() value=i; paint(); playUISound("slider",.92+(i/steps)*.2); fire(o.Callback,value) end)
-	end
-	function api:Set(v,silent) value=math.clamp(math.floor(v+.5),1,steps); paint(); if not silent then fire(o.Callback,value) end end
-	function api:Get() return value end
-	paint(); return api
-end
-
------------------------------------------------- textbox / input
+------------------------------------------------ text input
 function Elements.AddTextBox(g, o)
+	o = o or {}
 	local name = o.Name or "Input"
-	local row = rowBase(g, name, 50)
-	makeLabel(row, name, {Font=FONT_MEDIUM, TextSize=13, Position=UDim2.fromOffset(10,4), Size=UDim2.new(1,-20,0,18)})
+	local row = rowBase(g, name, 54)
+	makeLabel(row, name, {Font = FONT_MEDIUM, TextSize = 12, Position = UDim2.fromOffset(10, 2), Size = UDim2.new(0.34, -10, 0, 22)})
 	local box = create("TextBox", {
-		Position=UDim2.fromOffset(8,25), Size=UDim2.new(1,-16,0,21), BackgroundColor3=Theme.Element,
-		BorderSizePixel=0, ClearTextOnFocus=false, Font=FONT, TextSize=12, TextColor3=Theme.Text,
-		PlaceholderColor3=Theme.SubText, PlaceholderText=o.Placeholder or "Enter value...", Text=o.Default or "",
-		TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6, Parent=row,
-	}, {corner(4), stroke(Theme.Stroke,1,.1), create("UIPadding",{PaddingLeft=UDim.new(0,8),PaddingRight=UDim.new(0,8)})})
-	box.FocusGained:Connect(function() playUISound("click"); local st=box:FindFirstChildOfClass("UIStroke"); if st then tween(st,{Color=Theme.Accent},.15) end end)
-	box.FocusLost:Connect(function(enter) local st=box:FindFirstChildOfClass("UIStroke"); if st then tween(st,{Color=Theme.Stroke},.15) end; if enter or o.FireOnFocusLost then fire(o.Callback,box.Text) end end)
-	return {Get=function() return box.Text end, Set=function(_,v,silent) box.Text=tostring(v or ""); if not silent then fire(o.Callback,box.Text) end end, Box=box}
+		Position = UDim2.new(0.34, 0, 0, 2), Size = UDim2.new(0.66, -4, 0, 26),
+		BackgroundColor3 = Theme.Element, BackgroundTransparency = 0.1, BorderSizePixel = 0,
+		Font = FONT, TextSize = 12, TextColor3 = Theme.Text, PlaceholderText = o.Placeholder or "Enter value...",
+		PlaceholderColor3 = Theme.SubText, Text = tostring(o.Default or ""), ClearTextOnFocus = false,
+		TextXAlignment = Enum.TextXAlignment.Left, Parent = row,
+	}, {corner(4), stroke(Theme.Stroke, 1, 0.1)})
+	create("UIPadding", {PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = box})
+	box.Focused:Connect(function() local st=box:FindFirstChildOfClass("UIStroke"); if st then tween(st,{Color=Theme.Accent},0.15) end end)
+	box.FocusLost:Connect(function(enter) local st=box:FindFirstChildOfClass("UIStroke"); if st then tween(st,{Color=Theme.Stroke},0.15) end; if enter then fire(o.Callback, box.Text) end end)
+	return {Get = function() return box.Text end, Set = function(_, v) box.Text = tostring(v or "") end, Box = box}
 end
 
 ------------------------------------------------ dropdown
@@ -1474,15 +1451,11 @@ function Antler:CreateWindow(opts)
 	local viewport = cam and cam.ViewportSize or Vector2.new(1280, 720)
 	-- Responsive layout: touch-first phones/tablets get a compact icon rail,
 	-- larger hit targets, stacked groups and a tighter viewport fit.
-	local deviceType = (viewport.X < 600 and viewport.Y < 1100) and "Phone" or ((viewport.X < 1100 or viewport.Y < 700) and "Tablet" or "Desktop")
-	local isMobile = UserInputService.TouchEnabled and deviceType ~= "Desktop"
-	self._deviceType = deviceType
-	-- Keep the desktop-style horizontal rectangle everywhere. Mobile support is intentionally
-	-- limited to device-aware scaling and a floating reopen button after closing.
-	local W, H = 980, 650
-	local SIDEBAR, TOPBAR, BRAND = 190, 48, 58
-	local minScale = math.clamp(math.min((viewport.X - 12) / W, (viewport.Y - 44) / H), 0.36, 1)
-	local baseScale = minScale
+	local isMobile = UserInputService.TouchEnabled and (viewport.X < 1000 or viewport.Y < 700)
+	-- Keep the window horizontal on every device; UIScale handles the physical fit.
+	local W, H = isMobile and 760 or 980, isMobile and 500 or 600
+	local SIDEBAR, TOPBAR, BRAND = isMobile and 58 or 190, 48, 58
+	local baseScale = math.clamp(math.min((viewport.X - 12) / W, (viewport.Y - 44) / H), isMobile and 0.46 or 0.5, 1)
 	local scaleMult = 1
 	self._mobile = isMobile
 	self._mobileViewport = viewport
@@ -1504,7 +1477,7 @@ function Antler:CreateWindow(opts)
 		local c = workspace.CurrentCamera
 		if not c then return end
 		local vp = c.ViewportSize
-		local minScale = 0.36
+		local minScale = isMobile and 0.46 or 0.5
 		uiScale.Scale = math.clamp(math.min((vp.X - 12) / W, (vp.Y - 44) / H) * scaleMult, minScale, 1)
 	end
 	if cam then
@@ -1593,7 +1566,7 @@ function Antler:CreateWindow(opts)
 	}, {corner(8), stroke(Theme.Accent, 1, 0.7)})
 	local brandLogo = buildAntlerLogo(brand, 24, Theme.Accent)
 	brandLogo.Position = UDim2.fromOffset(17, (BRAND - 24) / 2)
-	local brandText = makeLabel(brand, titleRichText(opts.Name or "Antler", opts.Version or "V2"), {
+	local brandText = makeLabel(brand, titleRichText(opts.Name or "Merdian", opts.Version or "V2"), {
 		RichText = true, Font = FONT_BOLD, TextSize = 17, TextColor3 = Theme.AccentLight,
 		Position = UDim2.fromOffset(54, 0), Size = UDim2.new(1, -60, 1, 0),
 	})
@@ -1730,6 +1703,35 @@ function Antler:CreateWindow(opts)
 	local closeBtn = headerButton("close", -10)
 	local minBtn = headerButton("min", -40)
 
+	-- Mobile close becomes a movable squircle launcher instead of destroying/hiding the UI.
+	local mini = create("TextButton", {
+		Name = "MobileRestore", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 52, 0.78, 0),
+		Size = UDim2.fromOffset(54, 54), BackgroundColor3 = Theme.Sidebar, BackgroundTransparency = 0.04,
+		Text = "", AutoButtonColor = false, Visible = false, ZIndex = 80, Parent = gui,
+	}, {corner(16), stroke(Theme.Accent, 1.4, 0.15)})
+	local miniGlow = create("Frame", {Size = UDim2.fromScale(1,1), BackgroundColor3 = Theme.Accent, BackgroundTransparency = 0.9, BorderSizePixel = 0, Parent = mini}, {corner(16)})
+	local miniLogo = buildAntlerLogo(mini, 34, Theme.AccentLight)
+	miniLogo.AnchorPoint = Vector2.new(0.5,0.5)
+	miniLogo.Position = UDim2.fromScale(0.5,0.5)
+	local miniDragging, miniStart, miniPos
+	mini.InputBegan:Connect(function(input)
+		if not isPointer(input) then return end
+		miniDragging, miniStart = true, Vector2.new(input.Position.X, input.Position.Y)
+		miniPos = Vector2.new(mini.Position.X.Offset, mini.Position.Y.Offset)
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if not miniDragging or not isMove(input) then return end
+		local delta = Vector2.new(input.Position.X, input.Position.Y) - miniStart
+		local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280,720)
+		mini.Position = UDim2.fromOffset(math.clamp(miniPos.X + delta.X, 30, vp.X - 30), math.clamp(miniPos.Y + delta.Y, 30, vp.Y - 30))
+	end)
+	UserInputService.InputEnded:Connect(function(input) if isPointer(input) then miniDragging = false end end)
+	mini.MouseButton1Click:Connect(function()
+		if miniDragging then return end
+		mini.Visible = false
+		window:SetVisible(true)
+	end)
+
 	------------------------------------------------ content area
 	local content = create("Frame", {
 		Name = "Content", BackgroundTransparency = 1, Position = UDim2.fromOffset(SIDEBAR, TOPBAR), ClipsDescendants = true,
@@ -1737,7 +1739,7 @@ function Antler:CreateWindow(opts)
 	})
 
 	local function setCrumb(name)
-		crumb.Text = string.format('<font color="#%s">ANTLER</font>  <font color="#%s">/</font>  %s',
+		crumb.Text = string.format('<font color="#%s">MERDIAN</font>  <font color="#%s">/</font>  %s',
 			Theme.SubText:ToHex(), Theme.Off:ToHex(), string.upper(name))
 	end
 
@@ -1746,14 +1748,13 @@ function Antler:CreateWindow(opts)
 		if not tab then return end
 		query = string.lower(query or "")
 		for _, g in ipairs(tab.groups) do
-			local inSubtab = (g._subtab == nil) or (g._subtab == tab._subtabCurrent)
 			local any = false
 			for _, it in ipairs(g.items) do
-				local match = inSubtab and ((query == "") or (string.find(it.name, query, 1, true) ~= nil))
+				local match = (query == "") or (string.find(it.name, query, 1, true) ~= nil)
 				it.frame.Visible = match
 				if match then any = true end
 			end
-			g.frame.Visible = inSubtab and (any or query == "")
+			g.frame.Visible = any or query == ""
 		end
 	end
 	searchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -1818,22 +1819,21 @@ function Antler:CreateWindow(opts)
 		local container = create("CanvasGroup", {
 			Name = name, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, GroupTransparency = 1, Visible = false, ZIndex = 3, Parent = content,
 		})
-		local subnav = nil
 		local page = create("ScrollingFrame", {
-			BackgroundTransparency = 1, BorderSizePixel = 0, Position = UDim2.fromOffset(0,0), Size = UDim2.fromScale(1,1),
+			BackgroundTransparency = 1, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1),
 			CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.Accent, ScrollBarImageTransparency = 0.4, Parent = container,
 		}, {
-			create("UIPadding", {PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 14), PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12)}),
+			create("UIPadding", {PaddingLeft = UDim.new(0, isMobile and 8 or 12), PaddingRight = UDim.new(0, isMobile and 8 or 14), PaddingTop = UDim.new(0, isMobile and 8 or 12), PaddingBottom = UDim.new(0, isMobile and 10 or 12)}),
 		})
 		local cols = create("Frame", {
 			Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = page,
 		}, {
-			create("UIListLayout", {FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder}),
+			create("UIListLayout", {FillDirection = isMobile and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder}),
 		})
 		local function column(order)
 			return create("Frame", {
-				Size = UDim2.new(0.5, -5, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = cols,
+				Size = isMobile and UDim2.new(1, 0, 0, 0) or UDim2.new(0.5, -5, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = cols,
 			}, {create("UIListLayout", {Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder})})
 		end
 		local colL, colR = column(1), column(2)
@@ -1844,33 +1844,7 @@ function Antler:CreateWindow(opts)
 		tab.label = label
 		tab.paint = paintIcon
 		tab.container = container
-		 tab.page = page
-		 tab._subtabs = nil
-		 tab._subtabCurrent = nil
 		table.insert(tabs, tab)
-
-		function tab:AddSubTabs(names)
-			if subnav then subnav:Destroy() end
-			subnav = create("Frame", {Name="SubTabs", Position=UDim2.fromOffset(12,8), Size=UDim2.new(1,-26,0,34), BackgroundColor3=Theme.Group, BorderSizePixel=0, ZIndex=10, Parent=container}, {corner(6), stroke(Theme.Stroke,1,.15)})
-			create("UIListLayout", {FillDirection=Enum.FillDirection.Horizontal, Padding=UDim.new(0,3), SortOrder=Enum.SortOrder.LayoutOrder, Parent=subnav})
-			create("UIPadding", {PaddingLeft=UDim.new(0,4),PaddingRight=UDim.new(0,4),PaddingTop=UDim.new(0,4),PaddingBottom=UDim.new(0,4),Parent=subnav})
-			tab._subtabs = {}
-			for i,n in ipairs(names) do
-				local b=create("TextButton",{Name=n,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Theme.Element,BackgroundTransparency=1,Text=n,Font=FONT_BOLD,TextSize=11,TextColor3=Theme.SubText,AutoButtonColor=false,LayoutOrder=i,ZIndex=11,Parent=subnav},{corner(4),create("UIPadding",{PaddingLeft=UDim.new(0,12),PaddingRight=UDim.new(0,12)})})
-			tab._subtabs[n]={button=b}
-			b.MouseButton1Click:Connect(function() tab:SetSubTab(n); playUISound("click") end)
-			end
-			page.Position=UDim2.fromOffset(0,42); page.Size=UDim2.new(1,0,1,-42)
-			tab:SetSubTab(names[1])
-			return tab
-		end
-		function tab:SetSubTab(name)
-			tab._subtabCurrent=name
-			for n,d in pairs(tab._subtabs or {}) do
-				tween(d.button,{TextColor3=n==name and Theme.AccentLight or Theme.SubText,BackgroundTransparency=n==name and .15 or 1},.15)
-			end
-			for _,g in ipairs(tab.groups) do g.frame.Visible=(g._subtab==nil or g._subtab==name) end
-		end
 
 		button.MouseButton1Click:Connect(function() playUISound("click"); selectTab(tab) end)
 		button.MouseEnter:Connect(function()
@@ -1920,7 +1894,7 @@ function Antler:CreateWindow(opts)
 				create("UIPadding", {PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 8)}),
 			})
 
-			local group = {frame = frame, body = body, items = {}, _subtab = tab._subtabCurrent}
+			local group = {frame = frame, body = body, items = {}}
 			for elementName, fn in pairs(Elements) do
 				group[elementName] = function(self, o) return fn(self, o or {}) end
 			end
@@ -1944,22 +1918,10 @@ function Antler:CreateWindow(opts)
 	end
 
 	----------------------------------------------------------------
-	-- window controls + touch floating launcher
+	-- window controls
 	----------------------------------------------------------------
-	local launcher
-	if isMobile then
-		launcher=create("TextButton",{Name="MobileLauncher",AnchorPoint=Vector2.new(.5,.5),Position=UDim2.new(.12,0,.82,0),Size=UDim2.fromOffset(52,52),BackgroundColor3=Theme.Group,BorderSizePixel=0,Text="",AutoButtonColor=false,Visible=false,ZIndex=100,Parent=gui},{corner(14),stroke(Theme.Accent,1,.25)})
-		local lg=buildAntlerLogo(launcher,30,Theme.Accent); lg.AnchorPoint=Vector2.new(.5,.5); lg.Position=UDim2.fromScale(.5,.5)
-		bindDrag(launcher,function(pos,isStart)
-			if isStart then launcher:SetAttribute("DragX",pos.X); launcher:SetAttribute("DragY",pos.Y); return end
-			local dx=pos.X-(launcher:GetAttribute("DragX") or pos.X); local dy=pos.Y-(launcher:GetAttribute("DragY") or pos.Y)
-			local p=launcher.Position; launcher.Position=UDim2.new(p.X.Scale,p.X.Offset+dx,p.Y.Scale,p.Y.Offset+dy); launcher:SetAttribute("DragX",pos.X); launcher:SetAttribute("DragY",pos.Y)
-		end)
-	end
 	function window:SetVisible(on)
-
 		visible = on
-		if launcher then launcher.Visible=not on end
 		if on then
 			playUISound("open", 1.0)
 			root.Visible = true
@@ -1994,13 +1956,19 @@ function Antler:CreateWindow(opts)
 		tween(root, {Size = UDim2.fromOffset(W, minimized and TOPBAR or H)}, 0.28, Enum.EasingStyle.Quint)
 	end)
 	closeBtn.MouseButton1Click:Connect(function()
-		window:SetVisible(false)
-		if isMobile and launcher then launcher.Visible=true end
-		if not isMobile then Antler:Notify({Title = "Antler", Content = "Menu hidden. Press " .. toggleKey.Name .. " to reopen.", Duration = 3}) end
+		if isMobile then
+			window:SetVisible(false)
+			mini.Visible = true
+		else
+			window:SetVisible(false)
+			Antler:Notify({Title = "Merdian", Content = "Menu hidden. Press " .. toggleKey.Name .. " to reopen.", Duration = 3})
+		end
 	end)
-	if launcher then launcher.MouseButton1Click:Connect(function() playUISound("open"); window:SetVisible(true) end) end
 	table.insert(self._connections, UserInputService.InputBegan:Connect(function(input, processed)
-		if not processed and input.KeyCode == toggleKey then window:Toggle() end
+		if not processed and input.KeyCode == toggleKey then
+			if mini.Visible then mini.Visible = false end
+			window:Toggle()
+		end
 	end))
 
 	window:SetVisible(true)
@@ -2023,7 +1991,7 @@ end
 
 Antler:PlayIntro()
 
-local Window = Antler:CreateWindow({Name="ANTLER", Version="V2", ToggleKey=Enum.KeyCode.RightShift})
+local Window = Antler:CreateWindow({Name="MERDIAN", Version="V2", ToggleKey=Enum.KeyCode.RightShift})
 
 local HomeTab=Window:CreateTab("Home","home")
 local CombatTab=Window:CreateTab("Combat","combat")
@@ -2031,6 +1999,26 @@ local PlayerTab=Window:CreateTab("Player","player")
 local VisualTab=Window:CreateTab("Visual","visual")
 local WorldTab=Window:CreateTab("World","world")
 local SettingsTab=Window:CreateTab("Settings","gear")
+
+-- Horizontal sub-tab navigation used by the larger World and Settings pages.
+local function addSubTabs(tab, labels, callback)
+	local page = tab.container:FindFirstChildOfClass("ScrollingFrame")
+	if not page then return end
+	local nav = create("Frame", {Name="SubTabs", Position=UDim2.fromOffset(8,6), Size=UDim2.new(1,-16,0,34), BackgroundColor3=Theme.Sidebar, BorderSizePixel=0, ZIndex=10, Parent=tab.container}, {corner(6), stroke(Theme.Stroke,1,0.15)})
+	local list = create("Frame", {Size=UDim2.fromScale(1,1), BackgroundTransparency=1, Parent=nav}, {create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,4),VerticalAlignment=Enum.VerticalAlignment.Center}), create("UIPadding",{PaddingLeft=UDim.new(0,4),PaddingRight=UDim.new(0,4)})})
+	local buttons, current = {}, 1
+	for i,label in ipairs(labels) do
+		local b=create("TextButton",{Size=UDim2.new(1/#labels,-4,1,-6),BackgroundColor3=Theme.Element,BackgroundTransparency=1,Text="",AutoButtonColor=false,Parent=list},{corner(4)})
+		local l=makeLabel(b,string.upper(label),{Font=FONT_BOLD,TextSize=10,TextColor3=Theme.SubText,TextXAlignment=Enum.TextXAlignment.Center,Size=UDim2.fromScale(1,1)})
+		buttons[i]={b=b,l=l}
+		b.MouseButton1Click:Connect(function() current=i; for n,x in ipairs(buttons) do tween(x.b,{BackgroundTransparency=n==i and .15 or 1},.15); tween(x.l,{TextColor3=n==i and Theme.AccentLight or Theme.SubText},.15) end; callback(i,label) end)
+	end
+	page.Position=UDim2.fromOffset(0,40)
+	page.Size=UDim2.new(1,0,1,-40)
+	buttons[1].b.BackgroundTransparency=.15; buttons[1].l.TextColor3=Theme.AccentLight
+	callback(1,labels[1])
+	return nav
+end
 
 local function getHum()
 	local c=LocalPlayer.Character
@@ -2046,7 +2034,7 @@ end
 ----------------------------------------------------------------------
 local H={notifications=true,particles=true,compact=false,watermark=true,menuBlur=false}
 local Overview=HomeTab:AddGroup("Overview","Left")
-Overview:AddLabel("ANTLER V2  •  MOBILE READY")
+Overview:AddLabel("MERDIAN V2  •  MOBILE READY")
 Overview:AddLabel("Responsive touch controls, stacked groups and a compact icon rail are enabled automatically.")
 Overview:AddButton({Name="Refresh Session",Callback=function()
 	Antler:Notify({Title="Home",Content="Session refreshed.",Duration=2,Type="success"})
@@ -2441,99 +2429,8 @@ table.insert(Antler._connections,RunService.RenderStepped:Connect(function()
 end))
 
 ----------------------------------------------------------------------
--- EXTRA FEATURES
+-- WORLD
 ----------------------------------------------------------------------
--- HOME: denser utility / diagnostics
-local HomeUtility=HomeTab:AddGroup("Diagnostics","Left")
-HomeUtility:AddToggle({Name="Server Clock",Default=true,NoList=true,Callback=function(on) timeLabel.Visible=on end})
-HomeUtility:AddToggle({Name="Server Job ID",Default=true,NoList=true,Callback=function(on) jobLabel.Visible=on end})
-HomeUtility:AddToggle({Name="Place ID",Default=true,NoList=true,Callback=function(on) placeLabel.Visible=on end})
-HomeUtility:AddToggle({Name="Show Username",Default=true,NoList=true,Callback=function(on) userLabel.Visible=on end})
-HomeUtility:AddButton({Name="Copy Job ID",Callback=function() if setclipboard then pcall(setclipboard,game.JobId) end; Antler:Notify({Title="Diagnostics",Content="Job ID copied when clipboard access is available.",Duration=2,Type="success"}) end})
-HomeUtility:AddButton({Name="Copy Place ID",Callback=function() if setclipboard then pcall(setclipboard,tostring(game.PlaceId)) end end})
-local HomeVisual=HomeTab:AddGroup("Display","Right")
-HomeVisual:AddToggle({Name="Glow Effects",Default=true,NoList=true,Callback=function(on) Antler._glow=on end})
-HomeVisual:AddToggle({Name="Animated Border",Default=true,NoList=true,Callback=function(on) Antler._animatedBorder=on end})
-HomeVisual:AddToggle({Name="Smooth Scrolling",Default=true,NoList=true,Callback=function(on) Antler._smoothScroll=on end})
-HomeVisual:AddDropdown({Name="UI Density",Options={"Comfortable","Dense","Ultra Dense"},Default="Dense",Callback=function(v) Antler._density=v end})
-HomeVisual:AddDropdown({Name="Notification Style",Options={"Minimal","Classic","Wide"},Default="Classic",Callback=function(v) Antler._notifyStyle=v end})
-
--- COMBAT: more configuration-heavy groups
-local CombatTargeting=CombatTab:AddGroup("Targeting","Left")
-CombatTargeting:AddToggle({Name="Ignore Friends",Default=true,Callback=function(on) C.ignoreFriends=on end})
-CombatTargeting:AddToggle({Name="Ignore ForceField",Callback=function(on) C.ignoreForceField=on end})
-CombatTargeting:AddToggle({Name="Ignore Dead",Default=true,Callback=function(on) C.ignoreDead=on end})
-CombatTargeting:AddDropdown({Name="Distance Mode",Options={"3D Distance","Screen Distance","Crosshair Distance"},Default="Screen Distance",Callback=function(v) C.distanceMode=v end})
-CombatTargeting:AddSlider({Name="Max Distance",Min=25,Max=2000,Default=1000,Increment=25,Suffix=" st",Callback=function(v) C.maxDistance=v end})
-CombatTargeting:AddSlider({Name="Target Switch Delay",Min=0,Max=1000,Default=100,Increment=10,Suffix=" ms",Callback=function(v) C.switchDelay=v end})
-local CombatWeapon=CombatTab:AddGroup("Weapon","Right")
-CombatWeapon:AddToggle({Name="Recoil Control",Callback=function(on) C.recoil=on end})
-CombatWeapon:AddSlider({Name="Vertical Control",Min=0,Max=100,Default=50,Increment=1,Suffix="%",Callback=function(v) C.recoilV=v end})
-CombatWeapon:AddSlider({Name="Horizontal Control",Min=0,Max=100,Default=50,Increment=1,Suffix="%",Callback=function(v) C.recoilH=v end})
-CombatWeapon:AddToggle({Name="Spread Compensation",Callback=function(on) C.spreadComp=on end})
-CombatWeapon:AddToggle({Name="Auto Reload State",Callback=function(on) C.autoReload=on end})
-CombatWeapon:AddToggle({Name="Auto Equip State",Callback=function(on) C.autoEquip=on end})
-CombatWeapon:AddDropdown({Name="Weapon Filter",Options={"All","Ranged","Melee","Custom"},Default="All",Callback=function(v) C.weaponFilter=v end})
-local CombatSafety=CombatTab:AddGroup("Safety","Left")
-CombatSafety:AddToggle({Name="Disable In Air",Callback=function(on) C.disableAir=on end})
-CombatSafety:AddToggle({Name="Disable While Typing",Default=true,Callback=function(on) C.disableTyping=on end})
-CombatSafety:AddToggle({Name="Disable On Respawn",Default=true,Callback=function(on) C.disableRespawn=on end})
-CombatSafety:AddToggle({Name="Require Keybind",Callback=function(on) C.requireBind=on end})
-CombatSafety:AddDropdown({Name="Activation",Options={"Always","Hold","Toggle"},Default="Always",Callback=function(v) C.activation=v end})
-
--- PLAYER: extra movement, camera and character controls
-local PlayerAdvanced=PlayerTab:AddGroup("Advanced Movement","Left")
-PlayerAdvanced:AddToggle({Name="Crouch State",Callback=function(on) P.crouch=on end})
-PlayerAdvanced:AddSlider({Name="Crouch Speed",Min=4,Max=16,Default=8,Increment=.5,Suffix=" st/s",Callback=function(v) P.crouchSpeed=v end})
-PlayerAdvanced:AddToggle({Name="Auto Vault State",Callback=function(on) P.autoVault=on end})
-PlayerAdvanced:AddToggle({Name="Edge Jump State",Callback=function(on) P.edgeJump=on end})
-PlayerAdvanced:AddToggle({Name="No Slow State",Callback=function(on) P.noSlow=on end})
-PlayerAdvanced:AddSlider({Name="Air Control",Min=0,Max=100,Default=50,Increment=1,Suffix="%",Callback=function(v) P.airControl=v end})
-PlayerAdvanced:AddSlider({Name="Acceleration",Min=0,Max=100,Default=50,Increment=1,Suffix="%",Callback=function(v) P.accel=v end})
-local PlayerCamera=PlayerTab:AddGroup("Camera","Right")
-PlayerCamera:AddToggle({Name="Camera Smoothing",Default=true,Callback=function(on) P.cameraSmooth=on end})
-PlayerCamera:AddSlider({Name="Camera Smoothness",Min=0,Max=100,Default=50,Increment=1,Suffix="%",Callback=function(v) P.cameraSmoothness=v end})
-PlayerCamera:AddSlider({Name="Camera FOV",Min=40,Max=140,Default=70,Increment=1,Suffix="°",Callback=function(v) P.cameraFov=v end})
-PlayerCamera:AddToggle({Name="FOV Kick",Callback=function(on) P.fovKick=on end})
-PlayerCamera:AddToggle({Name="Camera Tilt",Callback=function(on) P.cameraTilt=on end})
-PlayerCamera:AddSlider({Name="Tilt Amount",Min=0,Max=20,Default=5,Increment=.5,Suffix="°",Callback=function(v) P.tilt=v end})
-local PlayerCharacter=PlayerTab:AddGroup("Character","Left")
-PlayerCharacter:AddToggle({Name="Headless State",Callback=function(on) P.headless=on end})
-PlayerCharacter:AddToggle({Name="Hide Accessories",Callback=function(on) P.hideAccessories=on end})
-PlayerCharacter:AddToggle({Name="Hide Nameplate",Callback=function(on) P.hideNameplate=on end})
-PlayerCharacter:AddToggle({Name="Platform Stand",Callback=function(on) P.platformStand=on end})
-PlayerCharacter:AddButton({Name="Respawn Character",Callback=function() if LocalPlayer.Character then LocalPlayer.Character:BreakJoints() end end})
-PlayerCharacter:AddButton({Name="Refresh Character",Callback=function() LocalPlayer:LoadCharacter() end})
-
--- VISUAL: more ESP, effects, overlays and camera controls
-local VisualESP=VisualTab:AddGroup("ESP Details","Left")
-VisualESP:AddToggle({Name="Tracers",Callback=function(on) ESP.tracers=on end})
-VisualESP:AddToggle({Name="Skeleton",Callback=function(on) ESP.skeleton=on end})
-VisualESP:AddToggle({Name="Chams",Callback=function(on) ESP.chams=on end})
-VisualESP:AddToggle({Name="Offscreen Arrows",Callback=function(on) ESP.arrows=on end})
-VisualESP:AddToggle({Name="Team Color",Default=true,Callback=function(on) ESP.teamColor=on end})
-VisualESP:AddSlider({Name="ESP Max Distance",Min=50,Max=3000,Default=1000,Increment=50,Suffix=" st",Callback=function(v) ESP.maxDistance=v end})
-VisualESP:AddDropdown({Name="Box Mode",Options={"2D","Corner","3D","None"},Default="2D",Callback=function(v) ESP.boxMode=v end})
-local VisualEffects=VisualTab:AddGroup("Effects","Right")
-VisualEffects:AddToggle({Name="Bloom",Callback=function(on) V.bloom=on end})
-VisualEffects:AddSlider({Name="Bloom Intensity",Min=0,Max=3,Default=1,Increment=.05,Callback=function(v) V.bloomIntensity=v end})
-VisualEffects:AddSlider({Name="Bloom Size",Min=0,Max=56,Default=24,Increment=1,Callback=function(v) V.bloomSize=v end})
-VisualEffects:AddSlider({Name="Bloom Threshold",Min=0,Max=2,Default=.8,Increment=.05,Callback=function(v) V.bloomThreshold=v end})
-VisualEffects:AddToggle({Name="Depth Of Field",Callback=function(on) V.dof=on end})
-VisualEffects:AddSlider({Name="Focus Distance",Min=0,Max=500,Default=50,Increment=1,Suffix=" st",Callback=function(v) V.focus=v end})
-local VisualOverlay=VisualTab:AddGroup("Overlays","Left")
-VisualOverlay:AddToggle({Name="Coordinates",Callback=function(on) V.coords=on end})
-VisualOverlay:AddToggle({Name="Compass",Callback=function(on) V.compass=on end})
-VisualOverlay:AddToggle({Name="Spectator List",Callback=function(on) V.spectators=on end})
-VisualOverlay:AddToggle({Name="Keystrokes",Callback=function(on) V.keystrokes=on end})
-VisualOverlay:AddToggle({Name="Session Watermark",Default=true,Callback=function(on) V.sessionWatermark=on end})
-VisualOverlay:AddSlider({Name="Overlay Opacity",Min=0,Max=100,Default=100,Increment=1,Suffix="%",Callback=function(v) V.overlayOpacity=v/100 end})
-
-----------------------------------------------------------------------
--- WORLD (horizontal sub-tabs)
-----------------------------------------------------------------------
-WorldTab:AddSubTabs({"Normal","Texture Packs"})
-
 local WorldMain=WorldTab:AddGroup("World","Left")
 WorldMain:AddSlider({Name="Time Of Day",Min=0,Max=24,Default=math.floor(origClock*4+.5)/4,Increment=.25,Suffix="h",Callback=function(v) V.time=v end})
 WorldMain:AddSlider({Name="Brightness",Min=0,Max=5,Default=origBrightness,Increment=.05,Callback=function(v) V.brightness=v end})
@@ -2543,39 +2440,32 @@ WorldMain:AddSlider({Name="Specular Strength",Min=0,Max=1,Default=1,Increment=.0
 WorldMain:AddToggle({Name="Fullbright",Keybind=Enum.KeyCode.B,Callback=function(on) setFullbright(on) end})
 WorldMain:AddToggle({Name="No Fog",Callback=function(on) setNoFog(on) end})
 
+-- Box-based hybrid control: each box is a discrete quality/intensity step.
+local function addQualityBoxes(group, name, default, callback)
+	local row=rowBase(group,name,54)
+	makeLabel(row,name,{Font=FONT_MEDIUM,TextSize=12,Position=UDim2.fromOffset(10,2),Size=UDim2.new(.34,-10,0,22)})
+	local holder=create("Frame",{Position=UDim2.new(.34,0,0,3),Size=UDim2.new(.66,-4,0,30),BackgroundTransparency=1,Parent=row},{create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,3),VerticalAlignment=Enum.VerticalAlignment.Center})})
+	local boxes={}
+	for i=1,10 do
+		local b=create("TextButton",{Size=UDim2.new(.1,-3,0,22),BackgroundColor3=Theme.Element,BackgroundTransparency=.15,Text="",AutoButtonColor=false,Parent=holder},{corner(3),stroke(Theme.Stroke,1,.15)})
+		local fill=create("Frame",{Size=UDim2.fromScale(1,1),BackgroundColor3=Theme.Accent,BackgroundTransparency=1,BorderSizePixel=0,Parent=b},{corner(3)})
+		boxes[i]={b=b,fill=fill}
+		b.MouseButton1Click:Connect(function() callback(i); for n,x in ipairs(boxes) do tween(x.fill,{BackgroundTransparency=n<=i and .25 or 1},.12) end end)
+	end
+	for n,x in ipairs(boxes) do x.fill.BackgroundTransparency=(n<=default) and .25 or 1 end
+	return {Set=function(_,v) for n,x in ipairs(boxes) do tween(x.fill,{BackgroundTransparency=n<=v and .25 or 1},.12) end end}
+end
+
 local WorldEnv=WorldTab:AddGroup("Environment","Right")
 WorldEnv:AddSlider({Name="Fog Start",Min=0,Max=1000,Default=Lighting.FogStart,Increment=10,Suffix=" st",Callback=function(v) Lighting.FogStart=v end})
 WorldEnv:AddSlider({Name="Fog End",Min=50,Max=10000,Default=math.min(Lighting.FogEnd,10000),Increment=50,Suffix=" st",Callback=function(v) Lighting.FogEnd=v end})
-WorldEnv:AddSlider({Name="Atmosphere Density",Min=0,Max=1,Default=.1,Increment=.01,Callback=function(v) for _,a in ipairs(Lighting:GetChildren()) do if a:IsA("Atmosphere") then a.Density=v end end end})
+WorldEnv:AddSlider({Name="Atmosphere Density",Min=0,Max=1,Default=0,Increment=.01,Callback=function(v) for _,a in ipairs(Lighting:GetChildren()) do if a:IsA("Atmosphere") then a.Density=v end end end})
 WorldEnv:AddSlider({Name="Atmosphere Haze",Min=0,Max=10,Default=0,Increment=.1,Callback=function(v) for _,a in ipairs(Lighting:GetChildren()) do if a:IsA("Atmosphere") then a.Haze=v end end end})
 WorldEnv:AddToggle({Name="Global Shadows",Default=true,Callback=function(on) Lighting.GlobalShadows=on end})
 WorldEnv:AddToggle({Name="Clouds",Default=true,Callback=function(on) for _,d in ipairs(workspace:GetDescendants()) do if d:IsA("Clouds") then d.Enabled=on end end end})
 WorldEnv:AddColorPicker({Name="Ambient Color",Default=Lighting.Ambient,Callback=function(c) Lighting.Ambient=c end})
 
-local WorldVol=WorldTab:AddGroup("Volumetrics","Left")
-local volume={enabled=false,hybrid=false,level=5}
-local sunRays=Lighting:FindFirstChild("AntlerSunRays")
-if not sunRays then sunRays=Instance.new("SunRaysEffect"); sunRays.Name="AntlerSunRays"; sunRays.Parent=Lighting end
-sunRays.Enabled=false
-local volumeAtmos=Lighting:FindFirstChild("AntlerVolumetricAtmosphere")
-if not volumeAtmos then volumeAtmos=Instance.new("Atmosphere"); volumeAtmos.Name="AntlerVolumetricAtmosphere"; volumeAtmos.Parent=Lighting end
-volumeAtmos.Enabled=false
-local function applyVolumetrics()
- local a=volume.level/12
- sunRays.Intensity=.015+a*.22; sunRays.Spread=.15+a*.85
- volumeAtmos.Enabled=volume.enabled and volume.hybrid
- volumeAtmos.Density=.05+a*.16
- volumeAtmos.Haze=.05+a*1.1
- volumeAtmos.Glare=.02+a*.08
-end
-WorldVol:AddToggle({Name="Volumetrics",Callback=function(on) volume.enabled=on; sunRays.Enabled=on; applyVolumetrics() end})
-WorldVol:AddToggle({Name="Hybrid",Callback=function(on) volume.hybrid=on; applyVolumetrics() end})
-WorldVol:AddSteppedSlider({Name="Realism",Steps=12,Default=6,Callback=function(v) volume.level=v; applyVolumetrics() end})
-WorldVol:AddSlider({Name="Sunray Intensity",Min=0,Max=1,Default=.12,Increment=.01,Callback=function(v) sunRays.Intensity=v end})
-WorldVol:AddSlider({Name="Sunray Spread",Min=0,Max=1,Default=.65,Increment=.01,Callback=function(v) sunRays.Spread=v end})
-WorldVol:AddLabel("The segmented realism control fills every box up to the selected level, with the far-right box representing maximum.")
-
-local WorldView=WorldTab:AddGroup("View / Camera","Right")
+local WorldView=WorldTab:AddGroup("View / Camera","Left")
 WorldView:AddSlider({Name="FOV",Min=30,Max=120,Default=math.floor(origFov+.5),Increment=1,Suffix="°",Callback=function(v) V.fov=v end})
 WorldView:AddToggle({Name="Camera Offset",Callback=function(on) V.cameraOffset=on end})
 WorldView:AddSlider({Name="Camera Height",Min=-5,Max=5,Default=0,Increment=.1,Suffix=" st",Callback=function(v) V.cameraHeight=v end})
@@ -2583,143 +2473,164 @@ WorldView:AddToggle({Name="Local Shadows",Default=true,Callback=function(on) V.l
 WorldView:AddToggle({Name="Force Day",Callback=function(on) if on then V.time=12 end end})
 WorldView:AddToggle({Name="Force Night",Callback=function(on) if on then V.time=0 end end})
 
-local WorldEffects=WorldTab:AddGroup("World Effects","Left")
-WorldEffects:AddToggle({Name="Color Correction",Callback=function(on) V.worldCorrection=on; if not colorCorrection then setColorCorrection() end; colorCorrection.Enabled=on end})
+local WorldEffects=WorldTab:AddGroup("World Effects","Right")
+WorldEffects:AddToggle({Name="Color Correction",Callback=function(on)
+	V.worldCorrection=on
+	if not colorCorrection then setColorCorrection() end
+	colorCorrection.Enabled=on
+end})
 WorldEffects:AddSlider({Name="Tint Strength",Min=0,Max=100,Default=0,Increment=1,Suffix="%",Callback=function(v) V.tint=v/100 end})
 WorldEffects:AddToggle({Name="Remove Atmosphere",Callback=function(on) for _,a in ipairs(Lighting:GetChildren()) do if a:IsA("Atmosphere") then a.Enabled=not on end end end})
 WorldEffects:AddToggle({Name="Remove Clouds",Callback=function(on) for _,d in ipairs(workspace:GetDescendants()) do if d:IsA("Clouds") then d.Enabled=not on end end end})
+
+local SunRays = Lighting:FindFirstChild("MerdianVolumetrics")
+if not SunRays then SunRays=Instance.new("SunRaysEffect"); SunRays.Name="MerdianVolumetrics"; SunRays.Parent=Lighting end
+SunRays.Enabled=false
+local VolumetricIntensity=0.35
+local VolumetricQuality=5
+local VolumetricGroup=WorldTab:AddGroup("Volumetrics","Left")
+VolumetricGroup:AddLabel("Realistic sunrays with a discrete box quality control. Higher levels increase ray intensity and spread.")
+VolumetricGroup:AddToggle({Name="Hybrid Volumetrics",Default=false,Callback=function(on) SunRays.Enabled=on; SunRays.Intensity=VolumetricIntensity; SunRays.Spread=.15 + VolumetricQuality*.08 end})
+VolumetricGroup:AddSlider({Name="Ray Intensity",Min=0,Max=1,Default=35,Increment=5,Suffix="%",Callback=function(v) VolumetricIntensity=v/100; SunRays.Intensity=VolumetricIntensity end})
+addQualityBoxes(VolumetricGroup,"Realism",VolumetricQuality,function(level) VolumetricQuality=level; SunRays.Spread=.15+level*.08 end)
+
 WorldEffects:AddButton({Name="Reset World",Callback=function()
- V.fov=nil; V.time=nil; V.brightness=nil; V.exposure=nil; local cam=workspace.CurrentCamera; if cam then cam.FieldOfView=origFov end
- Lighting.ClockTime=origClock; Lighting.Brightness=origBrightness; Lighting.ExposureCompensation=origExposure; Lighting.EnvironmentDiffuseScale=1; Lighting.EnvironmentSpecularScale=1
- sunRays.Enabled=false; volumeAtmos.Enabled=false; volume.enabled=false; Antler:Notify({Title="World",Content="World values restored.",Duration=2.5,Type="success"})
+	V.fov=nil; V.time=nil; V.brightness=nil; V.exposure=nil
+	local cam=workspace.CurrentCamera; if cam then cam.FieldOfView=origFov end
+	Lighting.ClockTime=origClock; Lighting.Brightness=origBrightness; Lighting.ExposureCompensation=origExposure
+	Lighting.EnvironmentDiffuseScale=1; Lighting.EnvironmentSpecularScale=1
+	Antler:Notify({Title="World",Content="World values restored.",Duration=2.5,Type="success"})
+end})
+WorldEffects:AddButton({Name="Reset Atmosphere",Callback=function()
+	for _,a in ipairs(Lighting:GetChildren()) do if a:IsA("Atmosphere") then a.Enabled=true; a.Density=0; a.Haze=0 end end
 end})
 
--- TEXTURE PACKS
-WorldTab:SetSubTab("Texture Packs")
-local PackReplace=WorldTab:AddGroup("Asset Replacement","Left")
-local pack={from="",to="",last="None"}
-local fromBox=PackReplace:AddTextBox({Name="Original Asset ID",Placeholder="e.g. 1234567890",Callback=function(v) pack.from=v end})
-local toBox=PackReplace:AddTextBox({Name="Replacement Asset ID",Placeholder="e.g. 9876543210",Callback=function(v) pack.to=v end})
+-- Texture Packs sub-page: replace matching asset IDs and classify every result by Roblox instance type.
+local TextureGroup=WorldTab:AddGroup("Texture Packs","Left")
+local SourceInput=TextureGroup:AddTextBox({Name="Source ID",Placeholder="Asset ID to find"})
+local ReplaceInput=TextureGroup:AddTextBox({Name="Replace ID",Placeholder="Asset ID to replace with"})
+local TextureResults={}
+local function assetId(value)
+	local n=tostring(value or ""):match("(%d+)")
+	return n
+end
+local function classifyAsset(obj)
+	if obj:IsA("Decal") then return "Decal","◆" end
+	if obj:IsA("Texture") or obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then return "Texture","▧" end
+	if obj:IsA("Sound") then return "Sound","♪" end
+	if obj:IsA("MeshPart") or obj:IsA("SpecialMesh") or obj:IsA("FileMesh") then return "Mesh","◇" end
+	if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then return "Image","▣" end
+	if obj:IsA("Animation") then return "Animation","▶" end
+	return nil,nil
+end
+local function assetProperty(obj)
+	if obj:IsA("Decal") then return "Texture" end
+	if obj:IsA("Texture") or obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then return "Texture" end
+	if obj:IsA("Sound") then return "SoundId" end
+	if obj:IsA("MeshPart") or obj:IsA("SpecialMesh") or obj:IsA("FileMesh") then return "MeshId" end
+	if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then return "Image" end
+	if obj:IsA("Animation") then return "AnimationId" end
+end
+local function clearTextureResults()
+	for _,o in ipairs(TextureResults) do if o and o.Parent then o:Destroy() end end
+	TextureResults={}
+end
+local function scanTextureId(sourceId, replacementId)
+	clearTextureResults()
+	local found=0
+	local src=assetId(sourceId); local repl=assetId(replacementId)
+	if not src or not repl then Antler:Notify({Title="Texture Packs",Content="Enter two valid numeric asset IDs.",Duration=2.5,Type="warning"}); return end
+	for _,obj in ipairs(game:GetDescendants()) do
+		local kind,icon=classifyAsset(obj); local prop=assetProperty(obj)
+		if kind and prop then
+			local ok,val=pcall(function() return obj[prop] end)
+			if ok and assetId(val)==src then
+				found+=1
+				local row=create("Frame",{Size=UDim2.new(1,0,0,30),BackgroundColor3=Theme.Element,BackgroundTransparency=.15,BorderSizePixel=0,Parent=TextureGroup.body},{corner(4)})
+				makeLabel(row,icon,{Font=FONT_BOLD,TextSize=13,TextColor3=Theme.AccentLight,TextXAlignment=Enum.TextXAlignment.Center,Position=UDim2.fromOffset(4,0),Size=UDim2.fromOffset(24,30)})
+				makeLabel(row,kind.."  •  "..obj:GetFullName(),{Font=FONT,TextSize=11,TextColor3=Theme.Text,TextTruncate=Enum.TextTruncate.AtEnd,Position=UDim2.fromOffset(30,0),Size=UDim2.new(1,-38,1,0)})
+				pcall(function() obj[prop]=tostring(replacementId):find("rbxassetid://") and tostring(replacementId) or "rbxassetid://"..tostring(repl) end)
+				table.insert(TextureResults,row)
+			end
+		end
+	end
+	Antler:Notify({Title="Texture Packs",Content=string.format("Replaced %d matching %s assets.",found,kind or ""),Duration=3,Type=found>0 and "success" or "info"})
+end
+TextureGroup:AddButton({Name="Scan + Replace",Callback=function() scanTextureId(SourceInput:Get(),ReplaceInput:Get()) end})
+TextureGroup:AddButton({Name="Clear Results",Callback=clearTextureResults})
+TextureGroup:AddLabel("Supported detection: Texture / Decal / Sound / Mesh / Image / Animation. The scan searches loaded game instances.")
 
--- Replace the placeholder callback with the actual scanner below.
-local scanLabel=PackReplace:AddLabel("Detected: None")
-
-local AssetList=WorldTab:AddGroup("Detected Type","Right")
-AssetList:AddLabel("The scanner checks common Roblox asset-bearing properties and reports a matching class/type icon.")
-local detectedIcon=AssetList:AddLabel("◈  None")
-local countLabel=AssetList:AddLabel("Matches: 0")
-local restoreButton=AssetList:AddButton({Name="Restore Last Replacement",Callback=function()
- if not pack.restore then return end
- for _,r in ipairs(pack.restore) do if r.instance and r.instance.Parent then pcall(function() r.instance[r.property]=r.old end) end end
- Antler:Notify({Title="Texture Packs",Content="Last replacement restored.",Duration=2,Type="success"})
- pack.restore=nil
+-- SETTINGS
+----------------------------------------------------------------------
+local Interface=SettingsTab:AddGroup("Interface","Left")
+Interface:AddToggle({Name="UI Sounds",Default=true,NoList=true,Callback=function(on) UISoundsEnabled=on end})
+Interface:AddSlider({Name="UI Volume",Min=0,Max=100,Default=16,Increment=1,Suffix="%",Callback=function(v) UISoundVolume=v/100 end})
+Interface:AddToggle({Name="Arraylist",Default=true,NoList=true,Callback=function(on) Antler._arrayHolder.Visible=on end})
+Interface:AddToggle({Name="Watermark",Default=true,NoList=true,Callback=function(on) Antler._watermark.Visible=on end})
+Interface:AddSlider({Name="UI Scale",Min=70,Max=120,Default=100,Increment=5,Suffix="%",Callback=function(v) Window:SetScale(v/100) end})
+Interface:AddToggle({Name="Reduced Motion",Callback=function(on) Antler._lowMotion=on end})
+Interface:AddColorPicker({Name="Accent Color",Default=Theme.Accent,Callback=function(c)
+	Theme.Accent=c; Theme.AccentLight=c:Lerp(WHITE,.25); Theme.Secondary=c:Lerp(Color3.new(0,0,0),.35)
 end})
 
-local function cleanAssetId(v)
- if not v then return "" end
- return string.match(tostring(v),"(%d+)") or tostring(v)
-end
-local function propKind(inst,prop)
- local c=inst.ClassName
- if prop=="SoundId" then return "♪  Sound" end
- if prop=="MeshId" or prop=="MeshID" or prop=="TextureID" and (c=="MeshPart" or c=="SpecialMesh") then return "◇  Mesh" end
- if prop=="AnimationId" then return "▶  Animation" end
- if prop=="Texture" and c=="Decal" then return "▧  Decal" end
- if prop=="Texture" then return "▦  Texture" end
- if prop=="Image" then return "▣  Image" end
- if prop=="Video" then return "▻  Video" end
- return "•  Asset"
-end
-local assetProps={
- {"Sound","SoundId"},{"Decal","Texture"},{"Texture","Texture"},{"ParticleEmitter","Texture"},{"Trail","Texture"},{"Beam","Texture"},
- {"MeshPart","MeshId"},{"MeshPart","TextureID"},{"SpecialMesh","MeshId"},{"SpecialMesh","TextureId"},{"Animation","AnimationId"},
- {"ImageLabel","Image"},{"ImageButton","Image"},{"VideoFrame","Video"}
-}
-local function scanAndReplace()
- local from=cleanAssetId(pack.from); local to=cleanAssetId(pack.to)
- if from=="" or to=="" then Antler:Notify({Title="Texture Packs",Content="Enter both asset IDs first.",Duration=2,Type="warning"}); return end
- pack.restore={}; local matches=0; local kind="•  Asset"
- local roots={workspace,Lighting,LocalPlayer:FindFirstChildOfClass("PlayerGui"),game:GetService("ReplicatedStorage"),game:GetService("ReplicatedFirst")}
- for _,rootInst in ipairs(roots) do
-  if rootInst then for _,inst in ipairs(rootInst:GetDescendants()) do
-   for _,spec in ipairs(assetProps) do
-    if inst:IsA(spec[1]) then
-     local prop=spec[2]; local ok,val=pcall(function() return inst[prop] end)
-     if ok and cleanAssetId(val)==from then
-      table.insert(pack.restore,{instance=inst,property=prop,old=val})
-      local newVal=(prop=="SoundId" or prop=="AnimationId" or prop=="Texture" or prop=="TextureID" or prop=="TextureId" or prop=="Image" or prop=="Video" or prop=="MeshId") and "rbxassetid://"..to or to
-      pcall(function() inst[prop]=newVal end)
-      matches+=1; kind=propKind(inst,prop)
-     end
-    end
-   end
-  end end
- pack.last=kind; scanLabel:SetText("Detected: "..kind); detectedIcon:SetText(kind); countLabel:SetText("Matches: "..matches)
- Antler:Notify({Title="Texture Packs",Content=matches>0 and ("Replaced "..matches.." matching asset(s) as "..kind) or "No matching asset was found.",Duration=3,Type=matches>0 and "success" or "warning"})
-end
--- wire the button by adding a dedicated action row (keeps the UI declarative)
-PackReplace:AddButton({Name="Run Scan / Replace",Callback=scanAndReplace})
-
-WorldTab:SetSubTab("Normal")
-
-----------------------------------------------------------------------
--- SETTINGS (horizontal sub-tabs)
-----------------------------------------------------------------------
-SettingsTab:AddSubTabs({"Configs","Lua"})
-SettingsTab:SetSubTab("Configs")
-local ConfigMain=SettingsTab:AddGroup("Config Manager","Left")
-local ConfigState={name="Default"}
+local Configs=SettingsTab:AddGroup("Configs","Left")
 local ConfigStore={}
-local function copyTable(src)
- local dst={}
- for k,v in pairs(src or {}) do if type(v)=="table" then dst[k]=copyTable(v) elseif typeof(v)=="Color3" then dst[k]=v else dst[k]=v end end
- return dst
+local function captureConfig()
+	return {volume=UISoundVolume,scale=1,accent=Theme.Accent,array=Antler._arrayHolder.Visible,watermark=Antler._watermark.Visible}
 end
-local function snapshotConfig()
- return {C=copyTable(C),P=copyTable(P),V=copyTable(V),ESP=copyTable(ESP),H=copyTable(H),UISoundsEnabled=UISoundsEnabled,UISoundVolume=UISoundVolume}
+local function applyConfig(c)
+	if not c then return end
+	UISoundVolume=c.volume or UISoundVolume; Antler._arrayHolder.Visible=c.array~=false; Antler._watermark.Visible=c.watermark~=false
+	if c.accent then Theme.Accent=c.accent; Theme.AccentLight=c.accent:Lerp(WHITE,.25); Theme.Secondary=c.accent:Lerp(Color3.new(0,0,0),.35) end
+	Antler:Notify({Title="Configs",Content="Configuration loaded.",Duration=2,Type="success"})
 end
-local function applySnapshot(s)
- if not s then return false end
- if s.C then for k,v in pairs(s.C) do C[k]=v end end
- if s.P then for k,v in pairs(s.P) do P[k]=v end end
- if s.V then for k,v in pairs(s.V) do V[k]=v end end
- if s.ESP then for k,v in pairs(s.ESP) do ESP[k]=v end end
- if s.H then for k,v in pairs(s.H) do H[k]=v end end
- if s.UISoundsEnabled~=nil then UISoundsEnabled=s.UISoundsEnabled end
- if s.UISoundVolume~=nil then UISoundVolume=s.UISoundVolume end
- return true
-end
-ConfigMain:AddTextBox({Name="Config Name",Default="Default",Placeholder="My config",Callback=function(v) ConfigState.name=(v~="" and v or "Default") end})
-ConfigMain:AddButton({Name="Save Config",Callback=function() ConfigStore[ConfigState.name]=snapshotConfig(); Antler:Notify({Title="Configs",Content="Saved: "..ConfigState.name,Duration=2,Type="success"}) end})
-ConfigMain:AddButton({Name="Load Config",Callback=function() if applySnapshot(ConfigStore[ConfigState.name]) then Antler:Notify({Title="Configs",Content="Loaded: "..ConfigState.name,Duration=2,Type="success"}) else Antler:Notify({Title="Configs",Content="No saved config named "..ConfigState.name,Duration=2,Type="warning"}) end end})
-ConfigMain:AddButton({Name="Reset Config",Callback=function() ConfigStore[ConfigState.name]=nil; Antler:Notify({Title="Configs",Content="Removed saved config: "..ConfigState.name,Duration=2,Type="info"}) end})
-local ConfigPresets=SettingsTab:AddGroup("Presets","Right")
-ConfigPresets:AddDropdown({Name="Preset",Options={"Default","Competitive","Visual","Performance","Mobile"},Default="Default",Callback=function(v) ConfigState.preset=v end})
-ConfigPresets:AddButton({Name="Apply Preset",Callback=function() Antler:Notify({Title="Configs",Content="Applied preset: "..tostring(ConfigState.preset or "Default"),Duration=2,Type="success"}) end})
-ConfigPresets:AddButton({Name="Export Config",Callback=function() if setclipboard then pcall(setclipboard,"ANTLER_CONFIG:"..tostring(ConfigState.name)) end; Antler:Notify({Title="Configs",Content="Export string copied when clipboard access is available.",Duration=2}) end})
+Configs:AddDropdown({Name="Config Slot",Options={"Slot 1","Slot 2","Slot 3"},Default="Slot 1",Callback=function(v) Antler._configSlot=v end})
+Configs:AddButton({Name="Save Config",Callback=function() Antler._configSlot=Antler._configSlot or "Slot 1"; ConfigStore[Antler._configSlot]=captureConfig(); Antler:Notify({Title="Configs",Content=Antler._configSlot.." saved.",Duration=2,Type="success"}) end})
+Configs:AddButton({Name="Load Config",Callback=function() applyConfig(ConfigStore[Antler._configSlot or "Slot 1"]) end})
+Configs:AddButton({Name="Reset Configs",Callback=function() ConfigStore={}; Antler:Notify({Title="Configs",Content="Saved slots cleared.",Duration=2,Type="info"}) end})
 
-SettingsTab:SetSubTab("Lua")
-local LuaGroup=SettingsTab:AddGroup("Lua Executor","Left")
-local luaCode="-- Antler custom Lua\nAntler:Notify({Title=\"Custom Lua\",Content=\"Hello from the script tab!\",Duration=2})"
-local LuaInput=LuaGroup:AddTextBox({Name="Custom Lua",Default=luaCode,Placeholder="Write Lua code here..." ,FireOnFocusLost=false})
-LuaGroup:AddButton({Name="Run Code",Callback=function()
- local code=LuaInput:Get()
- local loader=loadstring or (getfenv and loadstring)
- if not loader then Antler:Notify({Title="Lua",Content="This environment does not expose loadstring.",Duration=2.5,Type="warning"}); return end
- local fn,err=loader(code,"=AntlerCustom")
- if not fn then Antler:Notify({Title="Lua Error",Content=tostring(err),Duration=3,Type="error"}); return end
- local env={Antler=Antler,Window=Window,Players=Players,Lighting=Lighting,workspace=workspace,game=game,RunService=RunService,UserInputService=UserInputService,LocalPlayer=LocalPlayer,Theme=Theme,print=print,warn=warn}
- if setfenv then pcall(setfenv,fn,setmetatable(env,{__index=getfenv and getfenv() or _G})) end
- local ok,res=pcall(fn)
- Antler:Notify({Title=ok and "Lua" or "Lua Error",Content=ok and "Code executed." or tostring(res),Duration=2.5,Type=ok and "success" or "error"})
+local Code=SettingsTab:AddGroup("Custom Lua","Right")
+Code:AddLabel("Run custom Luau inside Merdian. Available globals include Antler, Window, Lighting, workspace and LocalPlayer.")
+local codeRow=rowBase(Code,"Lua",150)
+local codeBox=create("TextBox",{Position=UDim2.fromOffset(6,4),Size=UDim2.new(1,-12,0,100),BackgroundColor3=Theme.Element,BackgroundTransparency=.05,BorderSizePixel=0,Font=Enum.Font.Code,TextSize=12,TextColor3=Theme.Text,PlaceholderText="print('Hello from Merdian')",PlaceholderColor3=Theme.SubText,Text="",ClearTextOnFocus=false,MultiLine=true,TextWrapped=false,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Top,Parent=codeRow},{corner(4),stroke(Theme.Stroke,1,.1)})
+create("UIPadding",{PaddingLeft=UDim.new(0,8),PaddingRight=UDim.new(0,8),PaddingTop=UDim.new(0,6),Parent=codeBox})
+Code:AddButton({Name="Run Lua",Callback=function()
+	local loader=loadstring
+	if type(loader)~="function" then Antler:Notify({Title="Custom Lua",Content="loadstring is unavailable in this environment.",Duration=3,Type="error"}); return end
+	local fn,err=loader(codeBox.Text)
+	if not fn then Antler:Notify({Title="Custom Lua",Content=tostring(err),Duration=4,Type="error"}); return end
+	local ok,res=pcall(fn)
+	Antler:Notify({Title="Custom Lua",Content=ok and ("Executed"..(res~=nil and (": "..tostring(res)) or ".")) or ("Error: "..tostring(res)),Duration=3,Type=ok and "success" or "error"})
 end})
-LuaGroup:AddButton({Name="Clear Code",Callback=function() LuaInput:Set("") end})
-local LuaHelp=SettingsTab:AddGroup("Lua API","Right")
-LuaHelp:AddLabel("Custom code runs in the same client environment when the executor exposes loadstring. Use the existing Antler API, Roblox services, and your own local helpers.")
-LuaHelp:AddLabel("Examples: Antler:Notify(...), Lighting.ClockTime = 12, workspace.CurrentCamera.FieldOfView = 90")
-LuaHelp:AddToggle({Name="Run On Script Load",Callback=function(on) Antler._runLuaOnLoad=on end})
-LuaHelp:AddToggle({Name="Run On Respawn",Callback=function(on) Antler._runLuaRespawn=on end})
+Code:AddButton({Name="Clear Lua",Callback=function() codeBox.Text="" end})
 
--- Return to configs when settings is first opened.
-SettingsTab:SetSubTab("Configs")
+local Session=SettingsTab:AddGroup("Session","Right")
+Session:AddLabel("RightShift toggles the menu. Drag the top bar to move it. On mobile, close the menu to turn it into a movable Merdian squircle launcher.")
+Session:AddButton({Name="Test Notification",Callback=function() Antler:Notify({Title="Merdian",Content="Interface feedback online.",Duration=2.5,Type="success"}) end})
+Session:AddButton({Name="Unload Merdian",Callback=function() Antler:Unload() end})
 
+-- Activate the requested horizontal sub-tabs and keep their pages intentionally sparse.
+local worldGroups={WorldMain,WorldEnv,WorldView,WorldEffects,VolumetricGroup}
+local textureGroups={TextureGroup}
+addSubTabs(WorldTab,{"World","Texture Packs"},function(index)
+	for _,g in ipairs(worldGroups) do g.frame.Visible=index==1 end
+	for _,g in ipairs(textureGroups) do g.frame.Visible=index==2 end
+end)
+local configGroups={Interface,Configs,Session}
+local codeGroups={Code}
+addSubTabs(SettingsTab,{"Configs","Custom Lua"},function(index)
+	for _,g in ipairs(configGroups) do g.frame.Visible=index==1 end
+	for _,g in ipairs(codeGroups) do g.frame.Visible=index==2 end
+end)
+
+table.insert(Antler._cleanups,function()
+	if combatOverlay then combatOverlay:Destroy(); combatOverlay=nil end
+	if crosshairGui then crosshairGui:Destroy(); crosshairGui=nil end
+	for _,s in pairs(UISoundObjects) do pcall(function() s:Destroy() end) end
+	UISoundObjects={}
+	local cam=workspace.CurrentCamera
+	if cam then cam.FieldOfView=origFov end
+	Lighting.ClockTime=origClock; Lighting.Brightness=origBrightness; Lighting.ExposureCompensation=origExposure
+end)
+
+Antler:Notify({Title="Merdian V2",Content="Loaded — Home / Combat / Player / Visual / World ready.",Duration=4,Type="success"})
